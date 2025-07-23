@@ -18,12 +18,13 @@ public class RideService {
         ride.setAvailableSeats(ride.getTotalSeats());
         return rideRepository.save(ride);
     }
+
     public List<Ride> getRidesByOwner(String ownerEmpId) {
         return rideRepository.findByOwnerEmpId(ownerEmpId);
     }
 
-    public List<Ride> getRidesByRoute(String route) {
-        return rideRepository.findByRoute(route);
+    public List<Ride> getRidesByOriginAndDestination(String origin, String destination) {
+        return rideRepository.findByOriginAndDestination(origin, destination);
     }
 
     public String joinRide(Long rideId, JoinRequest req) {

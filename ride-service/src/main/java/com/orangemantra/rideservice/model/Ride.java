@@ -3,6 +3,7 @@ package com.orangemantra.rideservice.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,10 +19,17 @@ public class Ride {
     private Long id;
 
     private String ownerEmpId;
-    private String route;
+
+    private String origin;
+    private String destination;
+
+    private LocalDate date;
+    private String arrivalTime;
+
+    private String carDetails;
+
     private int totalSeats;
     private int availableSeats;
-    private String arrivalTime;
 
     @ElementCollection
     private List<String> joinedEmpIds = new ArrayList<>();
