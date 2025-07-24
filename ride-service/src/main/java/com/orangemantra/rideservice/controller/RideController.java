@@ -35,8 +35,6 @@ public class RideController {
 
         return rideService.offerRide(ride);
     }
-
-
     @PostMapping("/join/{id}")
     public String joinRide(@PathVariable Long id, @RequestBody JoinRequest req) {
         return rideService.joinRide(id, req);
