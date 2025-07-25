@@ -45,4 +45,27 @@ public class RideService {
     public List<Ride> getAllRides() {
         return rideRepository.findAll();
     }
+    public Ride updateRide(Long rideId, Ride updatedRide) {
+        Ride existingRide = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+
+        existingRide.setOrigin(updatedRide.getOrigin());
+        existingRide.setDestination(updatedRide.getDestination());
+        existingRide.setDate(updatedRide.getDate());
+        existingRide.setArrivalTime(updatedRide.getArrivalTime());
+        existingRide.setCarDetails(updatedRide.getCarDetails());
+        existingRide.setTotalSeats(updatedRide.getTotalSeats());
+        existingRide.setAvailableSeats(updatedRide.getAvailableSeats());
+
+        return rideRepository.save(existingRide);
+    }
+    public void deleteRide(Long rideId) {
+        Ride existingRide = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+        rideRepository.delete(existingRide);
+    }
+    public Ride getRideById(Long rideId) {
+        return rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+    }
 }

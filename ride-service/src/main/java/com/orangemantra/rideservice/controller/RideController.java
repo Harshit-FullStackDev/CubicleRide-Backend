@@ -35,6 +35,7 @@ public class RideController {
 
         return rideService.offerRide(ride);
     }
+
     @PostMapping("/join/{id}")
     public String joinRide(@PathVariable Long id, @RequestBody JoinRequest req) {
         return rideService.joinRide(id, req);
@@ -56,5 +57,18 @@ public class RideController {
     public List<Ride> myRides() {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         return rideService.getRidesByOwner(empId);
+    }
+    @PutMapping("/edit/{id}")
+    public Ride updateRide(@PathVariable Long id, @RequestBody Ride updatedRide) {
+        return rideService.updateRide(id, updatedRide);
+    }
+    @GetMapping("edit/{id}")
+    public Ride getRideById(@PathVariable Long id) {
+        return rideService.getRideById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteRide(@PathVariable Long id) {
+        rideService.deleteRide(id);
     }
 }
