@@ -1,3 +1,20 @@
+//This code defines a global authentication filter for a Spring Cloud Gateway API
+//Gateway. Here’s what it does:
+//Class Setup:
+//Annotated with @Component and @Slf4j, making it a Spring bean with logging support.
+// Implements GlobalFilter and Ordered to intercept all requests and set filter order.
+//JWT Secret:
+//Injects the JWT secret from application properties.
+//Filter Logic:
+//Allows requests to /auth endpoints without authentication.
+//For other requests, checks for an Authorization header starting with Bearer .
+//If missing or invalid, responds with HTTP 401 Unauthorized.
+// If present, extracts and parses the JWT using the secret. If parsing fails, logs the error and returns 401.
+// If valid, allows the request to proceed.
+//Order:
+//Returns -1 to set high precedence for this filter.
+//This filter ensures only requests with valid JWT tokens (except /auth) are allowed through
+//the gateway.
 package com.orangemantra.apigateway.filter;
 
 import io.jsonwebtoken.Claims;

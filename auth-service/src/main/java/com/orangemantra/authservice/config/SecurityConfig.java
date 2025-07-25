@@ -1,3 +1,9 @@
+//This class configures Spring Security for your auth-service:
+//It defines a PasswordEncoder bean using BCrypt for secure password hashing.
+//The SecurityFilterChain bean disables CSRF protection and allows all HTTP requests without
+// authentication (anyRequest().permitAll()), meaning all endpoints are publicly accessible.
+//This setup is typical for an authentication service where you want to handle authentication
+// logic yourself, not restrict access at the gateway.
 package com.orangemantra.authservice.config;
 
 import org.springframework.context.annotation.Bean;

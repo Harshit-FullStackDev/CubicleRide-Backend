@@ -1,3 +1,12 @@
+//This class is a utility for generating JWT tokens for authenticated users.
+//Explanation:
+//Annotated with @Component so it can be injected as a Spring bean.
+//Reads the JWT secret and expiration time from application properties.
+//The generateToken(User user) method creates a JWT:
+//Sets the subject as the user's email.
+//Adds custom claims: role, empId, and name.
+//Sets issued and expiration dates.
+//Signs the token using the HS256 algorithm and the secret key.
 package com.orangemantra.authservice.util;
 
 import com.orangemantra.authservice.model.User;

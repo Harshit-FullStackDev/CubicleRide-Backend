@@ -1,3 +1,14 @@
+//This class is a Spring Security filter that authenticates requests using JWT tokens.
+//How it works:
+//It extends OncePerRequestFilter, so it runs once per request.
+//It checks for an Authorization header starting with Bearer .
+//If present, it extracts the JWT, parses claims using JwtUtil, and retrieves the user's role.
+//It creates a UsernamePasswordAuthenticationToken with the user's role and sets it in the
+// SecurityContextHolder, marking the request as authenticated.
+//If the token is invalid, it returns HTTP 401 Unauthorized.
+//If no token is present, the request proceeds unauthenticated.
+//Purpose:
+//This filter enables JWT-based authentication for your service endpoints.
 package com.orangemantra.employeeservice.config;
 
 import com.orangemantra.employeeservice.util.JwtUtil;
