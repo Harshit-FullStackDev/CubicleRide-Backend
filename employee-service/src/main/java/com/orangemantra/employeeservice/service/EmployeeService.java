@@ -18,7 +18,7 @@ public class EmployeeService {
         Employee emp = repository.findByEmpId(request.getEmpId())
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + request.getEmpId() + " not found"));
 
-        emp.setRoute(request.getRoute());
+//        emp.setRoute(request.getRoute());
         repository.save(emp);
         return "Route updated";
     }

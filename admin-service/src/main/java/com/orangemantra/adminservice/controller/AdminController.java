@@ -7,7 +7,9 @@ import com.orangemantra.adminservice.model.RideDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin")
@@ -25,5 +27,19 @@ public class AdminController {
     @GetMapping("/rides")
     public List<RideDTO> getAllRides() {
         return rideClient.getAllRides();
+    }
+    @GetMapping("/employees/count")
+    public Map<String, Long> getEmployeeCount() {
+        long count = employeeClient.getAllEmployees().size();
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", count);
+        return response;
+    }
+    @GetMapping("/rides/count")
+    public Map<String, Long> getRideCount() {
+        long count = rideClient.getAllRides().size();
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", count);
+        return response;
     }
 }
