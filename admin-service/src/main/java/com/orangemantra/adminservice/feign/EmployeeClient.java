@@ -3,9 +3,7 @@ package com.orangemantra.adminservice.feign;
 import com.orangemantra.adminservice.config.FeignClientConfig;
 import com.orangemantra.adminservice.model.EmployeeDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -15,4 +13,9 @@ public interface EmployeeClient {
     List<EmployeeDTO> getAllEmployees();
     @DeleteMapping("/employee/{empId}")
     void deleteEmployee(@PathVariable("empId") String empId);
+    @GetMapping("/employee/{empId}")
+    EmployeeDTO getEmployee(@PathVariable("empId") String empId);
+    // admin-service/src/main/java/com/orangemantra/adminservice/feign/EmployeeClient.java
+    @PutMapping("/employee/{empId}")
+    EmployeeDTO updateEmployee(@PathVariable("empId") String empId, @RequestBody EmployeeDTO employeeDTO);
 }

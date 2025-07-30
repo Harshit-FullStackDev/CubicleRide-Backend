@@ -35,5 +35,13 @@ public class EmployeeService {
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
         repository.delete(emp);
     }
+    public Employee updateEmployee(String empId, Employee updated) {
+        Employee emp = repository.findByEmpId(empId)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
+        emp.setName(updated.getName());
+        emp.setEmail(updated.getEmail());
+        // set other fields as needed
+        return repository.save(emp);
+    }
 
 }

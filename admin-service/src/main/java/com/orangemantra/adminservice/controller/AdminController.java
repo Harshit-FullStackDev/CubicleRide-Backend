@@ -56,4 +56,13 @@ public class AdminController {
         }
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/employees/{empId}")
+    public EmployeeDTO getEmployee(@PathVariable String empId) {
+        return employeeClient.getEmployee(empId);
+    }
+    @PutMapping("/employees/{empId}")
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String empId, @RequestBody EmployeeDTO employeeDTO) {
+        EmployeeDTO updatedEmployee = employeeClient.updateEmployee(empId, employeeDTO);
+        return ResponseEntity.ok(updatedEmployee);
+    }
 }
