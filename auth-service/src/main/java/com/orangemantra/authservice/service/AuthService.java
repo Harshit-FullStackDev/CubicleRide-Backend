@@ -8,6 +8,7 @@ import com.orangemantra.authservice.repository.UserRepository;
 import com.orangemantra.authservice.util.JwtUtil;
 import com.orangemantra.authservice.dto.EmployeeRegisterRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,5 +46,10 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
         return new AuthResponse(jwtUtil.generateToken(user));
+    }
+    public void deleteUserByEmpId(String empId) {
+        User user = userRepository.findByEmpId(empId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        userRepository.delete(user);
     }
 }

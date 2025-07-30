@@ -30,5 +30,10 @@ public class EmployeeService {
     public List<Employee> getAllEmployees() {
         return repository.findAll();
     }
+    public void deleteEmployee(String empId) {
+        Employee emp = repository.findByEmpId(empId)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
+        repository.delete(emp);
+    }
 
 }
