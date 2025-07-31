@@ -52,4 +52,12 @@ public class AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         userRepository.delete(user);
     }
+    public void updateUser(String empId, EmployeeRegisterRequest employeeRequest) {
+        User user = userRepository.findByEmpId(empId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        user.setName(employeeRequest.getName());
+        user.setEmail(employeeRequest.getEmail());
+        // update other fields if needed
+        userRepository.save(user);
+    }
 }

@@ -30,4 +30,9 @@ public class AuthController {
     public void deleteUser(@PathVariable String empId) {
         authService.deleteUserByEmpId(empId);
     }
+    @PutMapping("/user/{empId}")
+    public ResponseEntity<?> updateUser(@PathVariable String empId, @RequestBody EmployeeRegisterRequest employeeRequest) {
+        authService.updateUser(empId, employeeRequest);
+        return ResponseEntity.ok().build();
+    }
 }

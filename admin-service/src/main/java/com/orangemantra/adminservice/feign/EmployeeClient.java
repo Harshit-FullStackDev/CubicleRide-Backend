@@ -15,7 +15,6 @@ public interface EmployeeClient {
     void deleteEmployee(@PathVariable("empId") String empId);
     @GetMapping("/employee/{empId}")
     EmployeeDTO getEmployee(@PathVariable("empId") String empId);
-    // admin-service/src/main/java/com/orangemantra/adminservice/feign/EmployeeClient.java
     @PutMapping("/employee/{empId}")
     EmployeeDTO updateEmployee(@PathVariable("empId") String empId, @RequestBody EmployeeDTO employeeDTO);
 }

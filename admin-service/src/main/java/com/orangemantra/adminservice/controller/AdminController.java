@@ -4,6 +4,7 @@ import com.orangemantra.adminservice.feign.EmployeeClient;
 import com.orangemantra.adminservice.feign.RideClient;
 import com.orangemantra.adminservice.feign.UserClient;
 import com.orangemantra.adminservice.model.EmployeeDTO;
+import com.orangemantra.adminservice.model.EmployeeRegisterRequest;
 import com.orangemantra.adminservice.model.RideDTO;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -60,9 +61,17 @@ public class AdminController {
     public EmployeeDTO getEmployee(@PathVariable String empId) {
         return employeeClient.getEmployee(empId);
     }
+    private EmployeeRegisterRequest toRegisterRequest(EmployeeDTO dto) {
+        EmployeeRegisterRequest req = new EmployeeRegisterRequest();
+        req.setEmpId(dto.getEmpId());
+        req.setName(dto.getName());
+       req.setEmail(dto.getEmail());
+        return req;
+    }
     @PutMapping("/employees/{empId}")
     public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String empId, @RequestBody EmployeeDTO employeeDTO) {
         EmployeeDTO updatedEmployee = employeeClient.updateEmployee(empId, employeeDTO);
+        userClient.updateUser(empId, toRegisterRequest(employeeDTO));
         return ResponseEntity.ok(updatedEmployee);
     }
 }
