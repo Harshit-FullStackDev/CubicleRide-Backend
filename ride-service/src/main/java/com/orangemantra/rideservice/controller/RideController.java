@@ -76,4 +76,15 @@ public class RideController {
     public void deleteRide(@PathVariable Long id) {
         rideService.deleteRide(id);
     }
+
+    @GetMapping("/joined/{empId}")
+    public List<Ride> getJoinedRides(@PathVariable String empId) {
+        return rideService.getJoinedRides(empId);
+    }
+
+    @PostMapping("/leave/{rideId}")
+    public ResponseEntity<?> leaveRide(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+        rideService.leaveRide(rideId, req.getEmpId());
+        return ResponseEntity.ok().build();
+    }
 }

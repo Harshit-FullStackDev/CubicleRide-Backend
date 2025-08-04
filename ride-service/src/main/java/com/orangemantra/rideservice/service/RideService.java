@@ -69,4 +69,19 @@ public class RideService {
         return rideRepository.findById(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
     }
+
+    public List<Ride> getJoinedRides(String empId) {
+        return rideRepository.findByJoinedEmpIdsContaining(empId);
+    }
+
+    public void leaveRide(Long rideId, String empId) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RuntimeException("Ride not found"));
+        if (ride.getJoinedEmpIds().remove(empId)) {
+            ride.setAvailableSeats(ride.getAvailableSeats() + 1);
+            rideRepository.save(ride);
+        } else {
+            throw new RuntimeException("Employee not joined in this ride");
+        }
+    }
 }
