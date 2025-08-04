@@ -23,4 +23,8 @@ public class NotificationService {
     public List<Notification> getNotifications(String userId) {
         return notificationRepository.findByUserId(userId);
     }
+
+    public void deleteNotification(Long id) {
+        notificationRepository.deleteById(id);
+    }
 }
