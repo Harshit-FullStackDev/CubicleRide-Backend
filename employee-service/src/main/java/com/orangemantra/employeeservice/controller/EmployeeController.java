@@ -48,5 +48,11 @@ public class EmployeeController {
     public Employee updateEmployee(@PathVariable String empId, @RequestBody Employee employee) {
         return employeeService.updateEmployee(empId, employee);
     }
+    // Java
+    @GetMapping("/{empId}/name")
+    public ResponseEntity<String> getEmployeeName(@PathVariable String empId) {
+        Employee employee = employeeService.getProfile(empId);
+        return ResponseEntity.ok(employee.getName());
+    }
 
 }

@@ -3,8 +3,10 @@ package com.orangemantra.rideservice.controller;
 import com.orangemantra.rideservice.dto.JoinRequest;
 import com.orangemantra.rideservice.dto.OfferRideRequest;
 import com.orangemantra.rideservice.model.Ride;
+import com.orangemantra.rideservice.service.NotificationService;
 import com.orangemantra.rideservice.service.RideService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,7 @@ import java.util.List;
 public class RideController {
 
     private final RideService rideService;
+    private final NotificationService notificationService;
 
     @PostMapping("/offer")
     public Ride offerRide(@RequestBody OfferRideRequest request) {
@@ -37,8 +40,10 @@ public class RideController {
     }
 
     @PostMapping("/join/{id}")
-    public String joinRide(@PathVariable Long id, @RequestBody JoinRequest req) {
-        return rideService.joinRide(id, req);
+    public ResponseEntity<?> joinRide(@PathVariable Long id, @RequestBody JoinRequest req) {
+        rideService.joinRide(id, req.getEmpId());
+        notificationService.notifyRideOwnerOnJoin(id, req.getEmpId());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/search")
@@ -71,5 +76,4 @@ public class RideController {
     public void deleteRide(@PathVariable Long id) {
         rideService.deleteRide(id);
     }
-
 }

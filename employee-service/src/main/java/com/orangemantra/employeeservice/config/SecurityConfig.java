@@ -33,6 +33,7 @@ public class SecurityConfig {
                             .requestMatchers("/employee/save").permitAll()
                             .requestMatchers("/employee/all").hasAnyRole("ADMIN", "EMPLOYEE")
                             .requestMatchers("/employee/**").hasAnyRole("ADMIN","EMPLOYEE")
+                            .requestMatchers("/notifications/**").hasAnyRole("ADMIN", "EMPLOYEE")
                             .anyRequest().authenticated()
                     )
                     .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
