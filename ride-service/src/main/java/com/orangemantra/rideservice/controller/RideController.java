@@ -65,9 +65,11 @@ public class RideController {
     @GetMapping("edit/{id}")
     public Ride getRideById(@PathVariable Long id) {
         return rideService.getRideById(id);
+
     }
     @DeleteMapping("/{id}")
     public void deleteRide(@PathVariable Long id) {
         rideService.deleteRide(id);
     }
+
 }

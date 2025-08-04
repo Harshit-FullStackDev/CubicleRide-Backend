@@ -15,6 +15,9 @@ public class RideService {
     private final RideRepository rideRepository;
 
     public Ride offerRide(Ride ride) {
+        if (ride.getTotalSeats() > 8) {
+            throw new RuntimeException("Total seats cannot exceed 8");
+        }
         ride.setAvailableSeats(ride.getTotalSeats());
         return rideRepository.save(ride);
     }

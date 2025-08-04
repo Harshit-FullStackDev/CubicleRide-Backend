@@ -22,7 +22,7 @@ spring:
             - id: ride-service
               uri: lb://ride-service
               predicates:
-                        - Path=/ride/**
+                        - Path=/ride/**, /locations
 
             - id: admin-service
               uri: lb://admin-service

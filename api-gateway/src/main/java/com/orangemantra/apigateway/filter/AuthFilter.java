@@ -41,9 +41,13 @@ public class AuthFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
 
-        if (request.getURI().getPath().contains("/auth")) {
+        if (
+                request.getURI().getPath().contains("/auth") ||
+                        request.getURI().getPath().equals("/locations")
+        ) {
             return chain.filter(exchange);
         }
+
 
         String authHeader = request.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

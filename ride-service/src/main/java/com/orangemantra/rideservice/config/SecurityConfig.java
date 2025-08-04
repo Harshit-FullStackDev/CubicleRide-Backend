@@ -17,7 +17,7 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/ride/all", "/ride/route/**","/ride/available","/ride/my-rides").permitAll()
+                        .requestMatchers("/ride/all", "/ride/route/**","/ride/available","/ride/my-rides","/locations").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
