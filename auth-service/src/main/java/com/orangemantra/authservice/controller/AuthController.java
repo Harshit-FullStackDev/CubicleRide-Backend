@@ -35,4 +35,13 @@ public class AuthController {
         authService.updateUser(empId, employeeRequest);
         return ResponseEntity.ok().build();
     }
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@RequestBody OtpVerifyRequest request) {
+        boolean success = authService.verifyOtp(request.getEmail(), request.getOtp());
+        if (success) {
+            return ResponseEntity.ok("Email verified successfully. You can now login.");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP or email.");
+        }
+    }
 }
