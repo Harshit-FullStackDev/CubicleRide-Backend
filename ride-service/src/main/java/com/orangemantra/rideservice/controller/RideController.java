@@ -2,6 +2,7 @@ package com.orangemantra.rideservice.controller;
 
 import com.orangemantra.rideservice.dto.JoinRequest;
 import com.orangemantra.rideservice.dto.OfferRideRequest;
+import com.orangemantra.rideservice.dto.RideResponseDTO;
 import com.orangemantra.rideservice.model.Ride;
 import com.orangemantra.rideservice.service.NotificationService;
 import com.orangemantra.rideservice.service.RideService;
@@ -59,9 +60,9 @@ public class RideController {
     }
 
     @GetMapping("/my-rides")
-    public List<Ride> myRides() {
+    public List<RideResponseDTO> myRides() {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
-        return rideService.getRidesByOwner(empId);
+        return rideService.getRidesWithEmployeeDetailsByOwner(empId);
     }
     @PutMapping("/edit/{id}")
     public Ride updateRide(@PathVariable Long id, @RequestBody Ride updatedRide) {
