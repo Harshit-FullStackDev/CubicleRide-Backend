@@ -55,8 +55,8 @@ public class RideController {
     }
 
     @GetMapping("/all")
-    public List<Ride> allRides() {
-        return rideService.getAllRides();
+    public List<RideResponseDTO> allRides() {
+        return rideService.getAllRidesWithEmployeeDetails();
     }
 
     @GetMapping("/my-rides")
@@ -79,8 +79,8 @@ public class RideController {
     }
 
     @GetMapping("/joined/{empId}")
-    public List<Ride> getJoinedRides(@PathVariable String empId) {
-        return rideService.getJoinedRides(empId);
+    public List<RideResponseDTO> getJoinedRides(@PathVariable String empId) {
+        return rideService.getJoinedRidesWithEmployeeDetails(empId);
     }
 
     @PostMapping("/leave/{rideId}")

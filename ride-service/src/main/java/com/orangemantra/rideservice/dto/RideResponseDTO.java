@@ -14,6 +14,7 @@ import java.util.List;
 public class RideResponseDTO {
     private Long id;
     private String ownerEmpId;
+    private String ownerName; // Added ownerName
     private String origin;
     private String destination;
     private String date;
@@ -24,4 +25,3 @@ public class RideResponseDTO {
     private String status;
     private List<JoinedEmployeeDTO> joinedEmployees;
 }
-

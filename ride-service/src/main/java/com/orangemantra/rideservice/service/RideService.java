@@ -155,4 +155,134 @@ public class RideService {
                     .build();
         }).toList();
     }
+
+    public List<RideResponseDTO> getAllRidesWithEmployeeDetails() {
+        List<Ride> rides = getAllRides();
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        final String jwt;
+        if (attrs != null) {
+            HttpServletRequest req = attrs.getRequest();
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader;
+            } else {
+                jwt = null;
+            }
+        } else {
+            jwt = null;
+        }
+        return rides.stream().map(ride -> {
+            // Fetch owner details
+            String ownerName = "Unknown";
+            try {
+                String url = "http://localhost:8082/employee/" + ride.getOwnerEmpId();
+                HttpHeaders headers = new HttpHeaders();
+                if (jwt != null) headers.set("Authorization", jwt);
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+                ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                EmployeeProfile owner = response.getBody();
+                if (owner != null) {
+                    ownerName = owner.getName();
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch owner {} from employee-service: {}", ride.getOwnerEmpId(), e.getMessage());
+            }
+            // Fetch joined employees
+            List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> {
+                try {
+                    String url = "http://localhost:8082/employee/" + empId;
+                    HttpHeaders headers = new HttpHeaders();
+                    if (jwt != null) headers.set("Authorization", jwt);
+                    HttpEntity<Void> entity = new HttpEntity<>(headers);
+                    ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                    EmployeeProfile emp = response.getBody();
+                    if (emp != null) {
+                        return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to fetch employee {} from employee-service: {}", empId, e.getMessage());
+                }
+                return new JoinedEmployeeDTO(empId, "Unknown", "");
+            }).toList();
+            return RideResponseDTO.builder()
+                    .id(ride.getId())
+                    .ownerEmpId(ride.getOwnerEmpId())
+                    .ownerName(ownerName)
+                    .origin(ride.getOrigin())
+                    .destination(ride.getDestination())
+                    .date(ride.getDate() != null ? ride.getDate().toString() : null)
+                    .arrivalTime(ride.getArrivalTime())
+                    .carDetails(ride.getCarDetails())
+                    .totalSeats(ride.getTotalSeats())
+                    .availableSeats(ride.getAvailableSeats())
+                    .status(null)
+                    .joinedEmployees(joinedEmployees)
+                    .build();
+        }).toList();
+    }
+
+    public List<RideResponseDTO> getJoinedRidesWithEmployeeDetails(String empId) {
+        List<Ride> rides = getJoinedRides(empId);
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        final String jwt;
+        if (attrs != null) {
+            HttpServletRequest req = attrs.getRequest();
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader;
+            } else {
+                jwt = null;
+            }
+        } else {
+            jwt = null;
+        }
+        return rides.stream().map(ride -> {
+            // Fetch owner details
+            String ownerName = "Unknown";
+            try {
+                String url = "http://localhost:8082/employee/" + ride.getOwnerEmpId();
+                HttpHeaders headers = new HttpHeaders();
+                if (jwt != null) headers.set("Authorization", jwt);
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+                ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                EmployeeProfile owner = response.getBody();
+                if (owner != null) {
+                    ownerName = owner.getName();
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch owner {} from employee-service: {}", ride.getOwnerEmpId(), e.getMessage());
+            }
+            // Fetch joined employees
+            List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(jEmpId -> {
+                try {
+                    String url = "http://localhost:8082/employee/" + jEmpId;
+                    HttpHeaders headers = new HttpHeaders();
+                    if (jwt != null) headers.set("Authorization", jwt);
+                    HttpEntity<Void> entity = new HttpEntity<>(headers);
+                    ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                    EmployeeProfile emp = response.getBody();
+                    if (emp != null) {
+                        return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to fetch employee {} from employee-service: {}", jEmpId, e.getMessage());
+                }
+                return new JoinedEmployeeDTO(jEmpId, "Unknown", "");
+            }).toList();
+            return RideResponseDTO.builder()
+                    .id(ride.getId())
+                    .ownerEmpId(ride.getOwnerEmpId())
+                    .ownerName(ownerName)
+                    .origin(ride.getOrigin())
+                    .destination(ride.getDestination())
+                    .date(ride.getDate() != null ? ride.getDate().toString() : null)
+                    .arrivalTime(ride.getArrivalTime())
+                    .carDetails(ride.getCarDetails())
+                    .totalSeats(ride.getTotalSeats())
+                    .availableSeats(ride.getAvailableSeats())
+                    .status("Active")
+                    .joinedEmployees(joinedEmployees)
+                    .build();
+        }).toList();
+    }
 }
