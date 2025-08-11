@@ -1,11 +1,19 @@
 package com.orangemantra.rideservice.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
@@ -32,5 +40,10 @@ public class Ride {
     private int availableSeats;
 
     @ElementCollection
+    @Builder.Default
     private List<String> joinedEmpIds = new ArrayList<>();
+
+    private String status; // Active, Expired, Cancelled
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

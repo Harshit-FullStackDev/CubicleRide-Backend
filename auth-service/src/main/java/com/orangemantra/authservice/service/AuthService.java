@@ -15,6 +15,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,9 +29,12 @@ public class AuthService {
 
     public void register(RegisterRequest req) {
         if (userRepository.existsByEmpId(req.getEmpId())) {
-            throw new RuntimeException("Employee ID already exists.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already registered (emp_id).");
         }
-        // Generate OTP
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already registered (email).");
+        }
+     
         String otp = String.valueOf((int)((Math.random() * 900000) + 100000)); // 6-digit OTP
         User user = User.builder()
                 .empId(req.getEmpId())
@@ -46,7 +51,7 @@ public class AuthService {
         emp.setName(user.getName());
         emp.setEmail(user.getEmail());
         employeeClient.saveEmployee(emp);
-        // Send OTP to email (implement sendOtpEmail)
+   
         sendOtpEmail(user.getEmail(), otp);
     }
 
@@ -59,7 +64,7 @@ public class AuthService {
             helper.setText("Your OTP is: " + otp + "\nPlease enter this OTP to verify your email.", false);
             mailSender.send(message);
         } catch (MessagingException e) {
-            // Log error or handle as needed
+         
             System.out.println("Failed to send OTP email: " + e.getMessage());
         }
     }
@@ -76,8 +81,8 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest req) {
-        User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email"));
+    User user = userRepository.findByEmail(req.getEmail())
+        .orElseThrow(() -> new RuntimeException("Invalid email"));
         if (!user.isVerified()) {
             throw new RuntimeException("Email not verified. Please verify your email before logging in.");
         }
@@ -96,7 +101,7 @@ public class AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         user.setName(employeeRequest.getName());
         user.setEmail(employeeRequest.getEmail());
-        // update other fields if needed
+     
         userRepository.save(user);
     }
 }

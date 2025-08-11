@@ -29,7 +29,7 @@ public class AdminController {
         return employeeClient.getAllEmployees();
     }
 
-    @GetMapping("/rides")
+    @   GetMapping("/rides")
     public List<RideDTO> getAllRides() {
         return rideClient.getAllRides();
     }
