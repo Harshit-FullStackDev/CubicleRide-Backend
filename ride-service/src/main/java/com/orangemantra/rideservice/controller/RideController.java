@@ -70,6 +70,12 @@ public class RideController {
     return rideService.getAllRidesWithEmployeeDetails();
     }
 
+    @GetMapping("/active")
+    public List<RideResponseDTO> activeRides() {
+        rideService.expirePastRidesInternal();
+        return rideService.getActiveRidesWithEmployeeDetails();
+    }
+
     @GetMapping("/my-rides")
     public List<RideResponseDTO> myRides() {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();

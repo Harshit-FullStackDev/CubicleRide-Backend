@@ -11,11 +11,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.orangemantra.rideservice.dto.JoinedEmployeeDTO;
 import com.orangemantra.rideservice.dto.RideResponseDTO;
@@ -33,16 +35,39 @@ public class RideService {
     private final RideRepository rideRepository;
     private final RestTemplate restTemplate;
     private static final Logger log = LoggerFactory.getLogger(RideService.class);
+    private static final String ACTIVE_RIDE_CONFLICT_MSG = "You already have a published ride. Please publish a new ride after the active ride ends.";
 
     public Ride offerRide(Ride ride) {
         if (ride.getTotalSeats() > 8) {
-            throw new RuntimeException("Total seats cannot exceed 8");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total seats cannot exceed 8");
+        }
+        // Ensure past rides are expired first so they don't block offering
+        expirePastRidesInternal();
+        // Guard: owner cannot have more than one active (pre-arrival) ride
+        List<Ride> activeOwned = rideRepository.findByOwnerEmpIdAndStatus(ride.getOwnerEmpId(), "Active");
+        LocalDateTime now = LocalDateTime.now();
+        for (Ride r : activeOwned) {
+            if (r.getDate() != null && r.getArrivalTime() != null) {
+                try {
+                    LocalTime at = LocalTime.parse(r.getArrivalTime());
+                    LocalDateTime scheduled = LocalDateTime.of(r.getDate(), at);
+                    if (now.isBefore(scheduled)) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
+                    }
+                } catch (Exception ignored) {
+                    // If parsing fails treat it as blocking to stay safe
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
+                }
+            } else {
+                // Missing date/time but still active – block
+                throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
+            }
         }
         ride.setAvailableSeats(ride.getTotalSeats());
-    ride.setStatus("Active");
-    ride.setCreatedAt(LocalDateTime.now());
-    ride.setUpdatedAt(LocalDateTime.now());
-    if (ride.getJoinedEmpIds() == null) ride.setJoinedEmpIds(new ArrayList<>());
+        ride.setStatus("Active");
+        ride.setCreatedAt(now);
+        ride.setUpdatedAt(now);
+        if (ride.getJoinedEmpIds() == null) ride.setJoinedEmpIds(new ArrayList<>());
         return rideRepository.save(ride);
     }
 
@@ -89,8 +114,23 @@ public class RideService {
         existingRide.setCarDetails(updatedRide.getCarDetails());
         existingRide.setTotalSeats(updatedRide.getTotalSeats());
         existingRide.setAvailableSeats(updatedRide.getAvailableSeats());
+        existingRide.setUpdatedAt(LocalDateTime.now());
 
-        return rideRepository.save(existingRide);
+        Ride saved = rideRepository.save(existingRide);
+
+        // Notify joined employees if ride still active and before its arrival time
+        boolean beforeArrival = false;
+        try {
+            if (saved.getStatus() != null && "Active".equalsIgnoreCase(saved.getStatus()) && saved.getDate() != null && saved.getArrivalTime() != null) {
+                LocalTime at = LocalTime.parse(saved.getArrivalTime());
+                LocalDateTime scheduled = LocalDateTime.of(saved.getDate(), at);
+                beforeArrival = LocalDateTime.now().isBefore(scheduled);
+            }
+        } catch (Exception ignored) {}
+        if (beforeArrival && saved.getJoinedEmpIds() != null && !saved.getJoinedEmpIds().isEmpty()) {
+            notifyJoinedOnUpdate(saved, new ArrayList<>(saved.getJoinedEmpIds()));
+        }
+        return saved;
     }
     public void deleteRide(Long rideId) {
         // First ensure past rides are expired appropriately (date/time aware)
@@ -218,6 +258,37 @@ public class RideService {
             }
         } catch (Exception e) {
             log.error("Failed to send cancellation notifications: {}", e.getMessage());
+        }
+    }
+
+    private void notifyJoinedOnUpdate(Ride ride, List<String> joinedEmpIds) {
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        final String jwt;
+        if (attrs != null) {
+            HttpServletRequest req = attrs.getRequest();
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader;
+            } else {
+                jwt = null;
+            }
+        } else {
+            jwt = null;
+        }
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            if (jwt != null) headers.set("Authorization", jwt);
+            headers.set("Content-Type", "application/json");
+            for (String je : joinedEmpIds) {
+                NotificationService.NotificationRequest notification = new NotificationService.NotificationRequest(
+                        je,
+                        "A ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been updated by the owner."
+                );
+                HttpEntity<NotificationService.NotificationRequest> entity = new HttpEntity<>(notification, headers);
+                restTemplate.postForEntity("http://localhost:8082/notifications", entity, Void.class);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send update notifications: {}", e.getMessage());
         }
     }
 
@@ -419,6 +490,70 @@ public class RideService {
                     .totalSeats(ride.getTotalSeats())
                     .availableSeats(ride.getAvailableSeats())
             .status(ride.getStatus())
+                    .joinedEmployees(joinedEmployees)
+                    .build();
+        }).toList();
+    }
+
+    public List<RideResponseDTO> getActiveRidesWithEmployeeDetails() {
+        // Only active rides after performing expiry
+        List<Ride> rides = rideRepository.findByStatus("Active");
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        final String jwt;
+        if (attrs != null) {
+            HttpServletRequest req = attrs.getRequest();
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader;
+            } else {
+                jwt = null;
+            }
+        } else {
+            jwt = null;
+        }
+        return rides.stream().map(ride -> {
+            String ownerName = "Unknown";
+            try {
+                String url = "http://localhost:8082/employee/" + ride.getOwnerEmpId();
+                HttpHeaders headers = new HttpHeaders();
+                if (jwt != null) headers.set("Authorization", jwt);
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+                ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                EmployeeProfile owner = response.getBody();
+                if (owner != null) {
+                    ownerName = owner.getName();
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch owner {} from employee-service: {}", ride.getOwnerEmpId(), e.getMessage());
+            }
+            List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> {
+                try {
+                    String url = "http://localhost:8082/employee/" + empId;
+                    HttpHeaders headers = new HttpHeaders();
+                    if (jwt != null) headers.set("Authorization", jwt);
+                    HttpEntity<Void> entity = new HttpEntity<>(headers);
+                    ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeProfile.class);
+                    EmployeeProfile emp = response.getBody();
+                    if (emp != null) {
+                        return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to fetch employee {} from employee-service: {}", empId, e.getMessage());
+                }
+                return new JoinedEmployeeDTO(empId, "Unknown", "");
+            }).toList();
+            return RideResponseDTO.builder()
+                    .id(ride.getId())
+                    .ownerEmpId(ride.getOwnerEmpId())
+                    .ownerName(ownerName)
+                    .origin(ride.getOrigin())
+                    .destination(ride.getDestination())
+                    .date(ride.getDate() != null ? ride.getDate().toString() : null)
+                    .arrivalTime(ride.getArrivalTime())
+                    .carDetails(ride.getCarDetails())
+                    .totalSeats(ride.getTotalSeats())
+                    .availableSeats(ride.getAvailableSeats())
+                    .status(ride.getStatus())
                     .joinedEmployees(joinedEmployees)
                     .build();
         }).toList();
