@@ -17,12 +17,7 @@ spring:
             - id: employee-service
               uri: lb://employee-service
               predicates:
-                - Path=/employee/**
-
-            - id: employee-service
-              uri: lb://employee-service
-              predicates:
-                - Path=/notifications/**
+                - Path=/employee/**, /notifications/**, /vehicle/**
 
             - id: ride-service
               uri: lb://ride-service

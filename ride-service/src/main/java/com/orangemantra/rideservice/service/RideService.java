@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -40,6 +41,24 @@ public class RideService {
     public Ride offerRide(Ride ride) {
         if (ride.getTotalSeats() > 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total seats cannot exceed 8");
+        }
+        // Verify vehicle approved (call employee-service /vehicle/{empId})
+        try {
+            String url = "http://localhost:8082/vehicle/" + ride.getOwnerEmpId();
+            ResponseEntity<VehicleInfo> resp = restTemplate.getForEntity(url, VehicleInfo.class);
+            VehicleInfo v = resp.getBody();
+            if (v == null || v.getStatus() == null || !"APPROVED".equalsIgnoreCase(v.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vehicle not approved. Please submit vehicle details and wait for approval before offering rides.");
+            }
+            if (v.getCapacity() != null && ride.getTotalSeats() > v.getCapacity()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total seats cannot exceed approved vehicle capacity (" + v.getCapacity() + ")");
+            }
+        } catch (HttpClientErrorException.NotFound nf) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No vehicle submitted. Please add your vehicle first.");
+        } catch (ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to verify vehicle status. Try again later.");
         }
         // Ensure past rides are expired first so they don't block offering
         expirePastRidesInternal();
@@ -363,7 +382,9 @@ public class RideService {
         private String name;
         private String email;
     }
-
+    @Data
+    static class VehicleInfo {
+        private Long id; private String status; private Integer capacity; private String registrationNumber; }
     public List<RideResponseDTO> getRidesWithEmployeeDetailsByOwner(String ownerEmpId) {
         List<Ride> rides = getRidesByOwner(ownerEmpId).stream()
                 .filter(r -> r.getStatus() == null || "Active".equalsIgnoreCase(r.getStatus()))
