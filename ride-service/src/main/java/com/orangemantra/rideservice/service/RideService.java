@@ -42,10 +42,18 @@ public class RideService {
         if (ride.getTotalSeats() > 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total seats cannot exceed 8");
         }
-        // Verify vehicle approved (call employee-service /vehicle/{empId})
         try {
+            // Include caller Authorization header when invoking employee-service
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            String authHeader = null;
+            if (attrs != null) {
+                HttpServletRequest req = attrs.getRequest();
+                authHeader = req.getHeader("Authorization");
+            }
             String url = "http://localhost:8082/vehicle/" + ride.getOwnerEmpId();
-            ResponseEntity<VehicleInfo> resp = restTemplate.getForEntity(url, VehicleInfo.class);
+            HttpHeaders headers = new HttpHeaders();
+            if (authHeader != null) headers.set("Authorization", authHeader);
+            ResponseEntity<VehicleInfo> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), VehicleInfo.class);
             VehicleInfo v = resp.getBody();
             if (v == null || v.getStatus() == null || !"APPROVED".equalsIgnoreCase(v.getStatus())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vehicle not approved. Please submit vehicle details and wait for approval before offering rides.");
@@ -53,8 +61,24 @@ public class RideService {
             if (v.getCapacity() != null && ride.getTotalSeats() > v.getCapacity()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total seats cannot exceed approved vehicle capacity (" + v.getCapacity() + ")");
             }
+            // Always override carDetails with latest approved vehicle info so user cannot spoof it
+            try {
+                StringBuilder sb = new StringBuilder();
+                if (v.getMake() != null && !v.getMake().isBlank()) sb.append(v.getMake()).append(' ');
+                if (v.getModel() != null && !v.getModel().isBlank()) sb.append(v.getModel()).append(' ');
+                if (v.getRegistrationNumber() != null && !v.getRegistrationNumber().isBlank()) {
+                    if (sb.length() > 0) sb.append('(').append(v.getRegistrationNumber()).append(')');
+                    else sb.append(v.getRegistrationNumber());
+                }
+                String details = sb.toString().trim().replaceAll(" +", " ");
+                if (!details.isEmpty()) {
+                    ride.setCarDetails(details);
+                }
+            } catch (Exception ignored) {}
         } catch (HttpClientErrorException.NotFound nf) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No vehicle submitted. Please add your vehicle first.");
+        } catch (HttpClientErrorException.Forbidden fb) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unable to verify vehicle (forbidden). Please re-login.");
         } catch (ResponseStatusException rse) {
             throw rse;
         } catch (Exception ex) {
@@ -384,7 +408,7 @@ public class RideService {
     }
     @Data
     static class VehicleInfo {
-        private Long id; private String status; private Integer capacity; private String registrationNumber; }
+        private Long id; private String status; private Integer capacity; private String registrationNumber; private String make; private String model; private String color; }
     public List<RideResponseDTO> getRidesWithEmployeeDetailsByOwner(String ownerEmpId) {
         List<Ride> rides = getRidesByOwner(ownerEmpId).stream()
                 .filter(r -> r.getStatus() == null || "Active".equalsIgnoreCase(r.getStatus()))
