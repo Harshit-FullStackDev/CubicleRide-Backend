@@ -24,4 +24,6 @@ public class RideResponseDTO {
     private int availableSeats;
     private String status;
     private List<JoinedEmployeeDTO> joinedEmployees;
+    private boolean instantBookingEnabled;
+    private List<JoinedEmployeeDTO> pendingEmployees; // when instantBookingEnabled=false
 }

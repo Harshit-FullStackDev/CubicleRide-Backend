@@ -43,6 +43,15 @@ public class Ride {
     @Builder.Default
     private List<String> joinedEmpIds = new ArrayList<>();
 
+    // If true passengers are auto-added. If false owner must approve each request.
+    @Builder.Default
+    private boolean instantBookingEnabled = true;
+
+    // Pending employee IDs waiting for owner approval (used when instantBookingEnabled = false)
+    @ElementCollection
+    @Builder.Default
+    private List<String> pendingEmpIds = new ArrayList<>();
+
     private String status; // Active, Expired, Cancelled
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

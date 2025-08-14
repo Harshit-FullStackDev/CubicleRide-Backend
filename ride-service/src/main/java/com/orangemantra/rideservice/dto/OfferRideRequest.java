@@ -10,4 +10,5 @@ public class OfferRideRequest {
     private String arrivalTime;  
     private String carDetails;
     private int totalSeats;
+    private boolean instantBookingEnabled = true; // true: auto accept joins; false: owner reviews
 }

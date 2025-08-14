@@ -44,6 +44,7 @@ public class RideController {
                 .carDetails(request.getCarDetails())
                 .totalSeats(request.getTotalSeats())
                 .availableSeats(request.getTotalSeats())
+                .instantBookingEnabled(request.isInstantBookingEnabled())
                 .ownerEmpId(empId)
                 .build();
 
@@ -105,6 +106,20 @@ public class RideController {
     @PostMapping("/leave/{rideId}")
     public ResponseEntity<Void> leaveRide(@PathVariable Long rideId, @RequestBody JoinRequest req) {
         rideService.leaveRide(rideId, req.getEmpId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/approve/{rideId}")
+    public ResponseEntity<Void> approve(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+        String ownerEmpId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        rideService.approveJoin(rideId, ownerEmpId, req.getEmpId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/decline/{rideId}")
+    public ResponseEntity<Void> decline(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+        String ownerEmpId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        rideService.declineJoin(rideId, ownerEmpId, req.getEmpId());
         return ResponseEntity.ok().build();
     }
 
