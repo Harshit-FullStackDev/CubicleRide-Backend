@@ -162,6 +162,7 @@ public class RideService {
         existing.setTotalSeats(updatedRide.getTotalSeats());
         existing.setAvailableSeats(updatedRide.getAvailableSeats());
         existing.setInstantBookingEnabled(updatedRide.isInstantBookingEnabled());
+    existing.setFare(updatedRide.getFare());
         existing.setUpdatedAt(LocalDateTime.now());
         Ride saved = rideRepository.save(existing);
         boolean beforeArrival = false;
@@ -327,6 +328,7 @@ public class RideService {
                 .carDetails(ride.getCarDetails())
                 .totalSeats(ride.getTotalSeats())
                 .availableSeats(ride.getAvailableSeats())
+                .fare(ride.getFare() != null ? ride.getFare().toPlainString() : null)
                 .status(ride.getStatus() != null ? ride.getStatus() : defaultStatus)
                 .joinedEmployees(joinedEmployees)
                 .instantBookingEnabled(ride.isInstantBookingEnabled())

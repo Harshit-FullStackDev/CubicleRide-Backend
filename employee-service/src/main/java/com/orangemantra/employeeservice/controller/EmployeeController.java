@@ -33,6 +33,12 @@ public class EmployeeController {
         employee.setEmpId(req.getEmpId());
         employee.setName(req.getName());
         employee.setEmail(req.getEmail());
+    employee.setPhone(req.getPhone());
+    employee.setDepartment(req.getDepartment());
+    employee.setDesignation(req.getDesignation());
+    employee.setOfficeLocation(req.getOfficeLocation());
+    employee.setGender(req.getGender());
+    employee.setBio(req.getBio());
         repository.save(employee);
         return ResponseEntity.ok("Employee saved successfully");
     }

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -38,6 +39,9 @@ public class Ride {
 
     private int totalSeats;
     private int availableSeats;
+
+    // Fare per seat (currency). Nullable => free ride. Non-negative.
+    private BigDecimal fare;
 
     @ElementCollection
     @Builder.Default

@@ -35,6 +35,11 @@ public class AuthController {
         authService.updateUser(empId, employeeRequest);
         return ResponseEntity.ok().build();
     }
+        @PutMapping("/user/name/{empId}")
+        public ResponseEntity<?> updateUserName(@PathVariable String empId, @RequestBody NameUpdateRequest nameUpdateRequest) {
+            authService.updateUserName(empId, nameUpdateRequest);
+            return ResponseEntity.ok().build();
+        }
     @PostMapping("/verify-otp")
     public ResponseEntity<String> verifyOtp(@RequestBody OtpVerifyRequest request) {
         boolean success = authService.verifyOtp(request.getEmail(), request.getOtp());

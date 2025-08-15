@@ -22,6 +22,7 @@ public class RideResponseDTO {
     private String carDetails;
     private int totalSeats;
     private int availableSeats;
+    private String fare; // string representation (per seat)
     private String status;
     private List<JoinedEmployeeDTO> joinedEmployees;
     private boolean instantBookingEnabled;

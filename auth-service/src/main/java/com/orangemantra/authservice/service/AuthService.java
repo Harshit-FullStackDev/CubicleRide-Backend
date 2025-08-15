@@ -2,6 +2,7 @@ package com.orangemantra.authservice.service;
 
 import com.orangemantra.authservice.dto.*;
 import com.orangemantra.authservice.feign.EmployeeClient;
+import com.orangemantra.authservice.dto.NameUpdateRequest;
 import com.orangemantra.authservice.model.User;
 import com.orangemantra.authservice.model.Role;
 import com.orangemantra.authservice.repository.UserRepository;
@@ -103,5 +104,18 @@ public class AuthService {
         user.setEmail(employeeRequest.getEmail());
      
         userRepository.save(user);
+    }
+
+    // Update only the name (used when employee profile name changes). Email remains OTP-verified and immutable.
+    public void updateUserName(String empId, NameUpdateRequest req) {
+        if (req == null) return;
+        String name = req.getName();
+        if (name == null || name.isBlank()) return;
+        User user = userRepository.findByEmpId(empId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (!name.equals(user.getName())) {
+            user.setName(name);
+            userRepository.save(user);
+        }
     }
 }

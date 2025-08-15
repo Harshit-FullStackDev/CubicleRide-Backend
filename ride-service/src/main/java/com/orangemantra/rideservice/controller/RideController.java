@@ -2,6 +2,7 @@ package com.orangemantra.rideservice.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.math.BigDecimal;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,6 +48,16 @@ public class RideController {
                 .instantBookingEnabled(request.isInstantBookingEnabled())
                 .ownerEmpId(empId)
                 .build();
+
+        if (request.getFare() != null && !request.getFare().isBlank()) {
+            try {
+                BigDecimal fare = new BigDecimal(request.getFare().trim());
+                if (fare.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Fare cannot be negative");
+                ride.setFare(fare);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid fare value");
+            }
+        }
 
         return rideService.offerRide(ride);
     }
