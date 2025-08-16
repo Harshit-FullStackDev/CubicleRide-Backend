@@ -15,6 +15,7 @@ public class RideResponseDTO {
     private Long id;
     private String ownerEmpId;
     private String ownerName; // Added ownerName
+    private String ownerPhone; // Conditionally exposed based on booking/approval
     private String origin;
     private String destination;
     private String date;

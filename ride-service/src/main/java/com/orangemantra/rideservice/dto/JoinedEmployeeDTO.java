@@ -11,5 +11,6 @@ public class JoinedEmployeeDTO {
     private String empId;
     private String name;
     private String email;
+    private String phone; // Conditionally exposed
 }
 

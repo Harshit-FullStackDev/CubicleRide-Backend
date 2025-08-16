@@ -2,6 +2,7 @@ package com.orangemantra.rideservice.service;
 
 import com.orangemantra.rideservice.dto.JoinedEmployeeDTO;
 import com.orangemantra.rideservice.dto.RideResponseDTO;
+import com.orangemantra.rideservice.util.JwtUtil;
 import com.orangemantra.rideservice.model.Ride;
 import com.orangemantra.rideservice.repository.RideRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import java.util.List;
 public class RideService {
     private final RideRepository rideRepository;
     private final RestTemplate restTemplate;
+    private final JwtUtil jwtUtil;
     private static final Logger log = LoggerFactory.getLogger(RideService.class);
     private static final String ACTIVE_RIDE_CONFLICT_MSG = "You already have a published ride. Please publish a new ride after the active ride ends.";
 
@@ -306,21 +308,54 @@ public class RideService {
 
     private RideResponseDTO buildDto(Ride ride, String defaultStatus, String jwt) {
         String ownerName = "Unknown";
+        String ownerPhone = null;
+        String viewerEmpId = null;
+        if (jwt != null) {
+            try {
+                String token = jwt.replace("Bearer ", "").trim();
+                viewerEmpId = jwtUtil.extractEmpId(token);
+            } catch (Exception ignored) {}
+        }
         try {
             String url = "http://localhost:8082/employee/" + ride.getOwnerEmpId();
             HttpHeaders headers = new HttpHeaders();
             if (jwt != null) headers.set("Authorization", jwt);
             ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
             EmployeeProfile owner = response.getBody();
-            if (owner != null) ownerName = owner.getName();
+            if (owner != null) {
+                ownerName = owner.getName();
+                ownerPhone = owner.getPhone();
+            }
         } catch (Exception e) { log.error("Failed to fetch owner {}: {}", ride.getOwnerEmpId(), e.getMessage()); }
+
+        boolean viewerIsOwner = viewerEmpId != null && viewerEmpId.equals(ride.getOwnerEmpId());
+        boolean viewerJoined = viewerEmpId != null && ride.getJoinedEmpIds().contains(viewerEmpId);
+        boolean canSeeOwnerPhone = viewerIsOwner || viewerJoined; // joined implies approved already
 
         List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> mapEmployee(empId, jwt)).toList();
         List<JoinedEmployeeDTO> pendingEmployees = mapPending(ride.getPendingEmpIds(), jwt);
+
+        // Apply phone visibility rules
+        if (!canSeeOwnerPhone) ownerPhone = null; // hide owner's phone if not joined/owner
+
+        for (JoinedEmployeeDTO je : joinedEmployees) {
+            if (viewerIsOwner) {
+                // owner sees all joined employees' phones
+                continue;
+            }
+            // Non-owner viewers: only show their own phone (optional) and hide others
+            if (viewerEmpId == null || !viewerEmpId.equals(je.getEmpId())) {
+                je.setPhone(null);
+            }
+        }
+        // Pending employees' phones never shown until approved
+        for (JoinedEmployeeDTO pe : pendingEmployees) { pe.setPhone(null); }
+
         return RideResponseDTO.builder()
                 .id(ride.getId())
                 .ownerEmpId(ride.getOwnerEmpId())
                 .ownerName(ownerName)
+                .ownerPhone(ownerPhone)
                 .origin(ride.getOrigin())
                 .destination(ride.getDestination())
                 .date(ride.getDate() != null ? ride.getDate().toString() : null)
@@ -343,9 +378,9 @@ public class RideService {
             if (jwt != null) headers.set("Authorization", jwt);
             ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
             EmployeeProfile emp = response.getBody();
-            if (emp != null) return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail());
+            if (emp != null) return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail(), emp.getPhone());
         } catch (Exception e) { log.error("Failed to fetch employee {}: {}", empId, e.getMessage()); }
-        return new JoinedEmployeeDTO(empId, "Unknown", "");
+        return new JoinedEmployeeDTO(empId, "Unknown", "", null);
     }
 
     private List<JoinedEmployeeDTO> mapPending(List<String> pendingIds, String jwt) {
@@ -366,6 +401,6 @@ public class RideService {
     }
 
     // HELPER DTO CLASSES -----------------------------------------
-    @Data static class EmployeeProfile { private String empId; private String name; private String email; }
+    @Data static class EmployeeProfile { private String empId; private String name; private String email; private String phone; }
     @Data static class VehicleInfo { private Long id; private String status; private Integer capacity; private String registrationNumber; private String make; private String model; private String color; }
 }
