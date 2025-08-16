@@ -49,4 +49,17 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP or email.");
         }
     }
+
+    // --- Admin OTP operations ---
+    @PostMapping("/admin/otp/verify/{empId}")
+    public ResponseEntity<?> adminForceVerify(@PathVariable String empId) {
+        authService.adminVerifyOtp(empId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/admin/otp/resend/{empId}")
+    public ResponseEntity<?> adminResendOtp(@PathVariable String empId) {
+        authService.adminResendOtp(empId);
+        return ResponseEntity.ok().build();
+    }
 }

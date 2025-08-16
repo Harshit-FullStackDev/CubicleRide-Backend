@@ -29,6 +29,13 @@ public class EmployeeController {
     }
     @PostMapping("/save")
     public ResponseEntity<String> saveEmployee(@RequestBody EmployeeRegisterRequest req) {
+        // Prevent duplicate creation (empId or email)
+        if (!repository.findAllByEmpId(req.getEmpId()).isEmpty()) {
+            return ResponseEntity.status(409).body("Employee with empId already exists");
+        }
+        if (req.getEmail() != null && repository.findByEmail(req.getEmail()).isPresent()) {
+            return ResponseEntity.status(409).body("Employee with email already exists");
+        }
         Employee employee = new Employee();
         employee.setEmpId(req.getEmpId());
         employee.setName(req.getName());

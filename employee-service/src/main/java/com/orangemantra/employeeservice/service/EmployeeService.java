@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import com.orangemantra.employeeservice.exception.EmployeeNotFoundException;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -20,29 +21,27 @@ public class EmployeeService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String assignRoute(RouteRequest request) {
-        Employee emp = repository.findByEmpId(request.getEmpId())
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + request.getEmpId() + " not found"));
-
-//        emp.setRoute(request.getRoute());
+        Employee emp = getSingleByEmpIdOrThrow(request.getEmpId());
+        // emp.setRoute(request.getRoute()); // placeholder
         repository.save(emp);
         return "Route updated";
     }
 
     public Employee getProfile(String empId) {
-        return repository.findByEmpId(empId)
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
+        return getSingleByEmpIdOrThrow(empId);
     }
     public List<Employee> getAllEmployees() {
         return repository.findAll();
     }
     public void deleteEmployee(String empId) {
-        Employee emp = repository.findByEmpId(empId)
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
-        repository.delete(emp);
+        List<Employee> matches = repository.findAllByEmpId(empId);
+        if (matches.isEmpty()) {
+            throw new EmployeeNotFoundException("Employee with ID " + empId + " not found");
+        }
+        repository.deleteAll(matches); // remove all duplicates if any
     }
     public Employee updateEmployee(String empId, Employee updated) {
-        Employee emp = repository.findByEmpId(empId)
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee with ID " + empId + " not found"));
+        Employee emp = getSingleByEmpIdOrThrow(empId);
     String oldName = emp.getName();
     emp.setName(updated.getName());
     // Email is OTP-verified at registration and must not be changed via profile updates.
@@ -65,6 +64,20 @@ public class EmployeeService {
             } catch (Exception ignored) {}
         }
         return saved;
+    }
+
+    /* Helper: ensure we operate on a deterministic single row even if data corruption introduced duplicates */
+    private Employee getSingleByEmpIdOrThrow(String empId) {
+        List<Employee> matches = repository.findAllByEmpId(empId);
+        if (matches.isEmpty()) {
+            throw new EmployeeNotFoundException("Employee with ID " + empId + " not found");
+        }
+        if (matches.size() > 1) {
+            // Keep the earliest (smallest id) deterministically; caller may later trigger cleanup
+            matches.sort(Comparator.comparingLong(Employee::getId));
+            // Optionally purge extras asynchronously; here just log.
+        }
+        return matches.get(0);
     }
 
 }

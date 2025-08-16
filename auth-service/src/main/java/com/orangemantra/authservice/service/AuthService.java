@@ -118,4 +118,23 @@ public class AuthService {
             userRepository.save(user);
         }
     }
+
+    // --- Admin OTP utilities ---
+    public void adminVerifyOtp(String empId) {
+        User user = userRepository.findByEmpId(empId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        user.setVerified(true);
+        user.setOtp(null);
+        userRepository.save(user);
+    }
+
+    public void adminResendOtp(String empId) {
+        User user = userRepository.findByEmpId(empId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (user.isVerified()) return; // already verified
+        String otp = String.valueOf((int)((Math.random() * 900000) + 100000));
+        user.setOtp(otp);
+        userRepository.save(user);
+        sendOtpEmail(user.getEmail(), otp);
+    }
 }

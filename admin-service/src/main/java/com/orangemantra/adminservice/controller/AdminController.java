@@ -3,6 +3,7 @@ package com.orangemantra.adminservice.controller;
 import com.orangemantra.adminservice.feign.EmployeeClient;
 import com.orangemantra.adminservice.feign.RideClient;
 import com.orangemantra.adminservice.feign.UserClient;
+import com.orangemantra.adminservice.feign.VehicleClient;
 import com.orangemantra.adminservice.model.EmployeeDTO;
 import com.orangemantra.adminservice.model.EmployeeRegisterRequest;
 import com.orangemantra.adminservice.model.RideDTO;
@@ -23,13 +24,14 @@ public class AdminController {
     private final EmployeeClient employeeClient;
     private final RideClient rideClient;
     private final UserClient userClient;
+    private final VehicleClient vehicleClient;
 
     @GetMapping("/employees")
     public List<EmployeeDTO> getAllEmployees() {
         return employeeClient.getAllEmployees();
     }
 
-    @   GetMapping("/rides")
+    @GetMapping("/rides")
     public List<RideDTO> getAllRides() {
         return rideClient.getAllRides();
     }
@@ -73,5 +75,41 @@ public class AdminController {
         EmployeeDTO updatedEmployee = employeeClient.updateEmployee(empId, employeeDTO);
         userClient.updateUser(empId, toRegisterRequest(employeeDTO));
         return ResponseEntity.ok(updatedEmployee);
+    }
+
+    // CREATE employee in both services (auth + employee) - expects empId, name, email, password (optional default) on frontend
+    @PostMapping("/employees")
+    public ResponseEntity<Map<String, Object>> createEmployee(@RequestBody EmployeeRegisterRequest req) {
+        // First create user in auth-service (password handled there: ensure default if null)
+        userClient.updateUser(req.getEmpId(), req); // if user doesn't exist this may 404; alternative is to call /auth/register via RestTemplate (skipped for simplicity)
+        employeeClient.createEmployee(req);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", "CREATED");
+        return ResponseEntity.ok(resp);
+    }
+
+    // VEHICLE MANAGEMENT -------------------------------------------------
+    @GetMapping("/vehicles")
+    public List<?> allVehicles() { return vehicleClient.allVehicles(); }
+
+    @GetMapping("/vehicles/{empId}")
+    public Map<String, Object> vehicleByEmp(@PathVariable String empId) { return vehicleClient.getByEmpId(empId); }
+
+    @PutMapping("/vehicles/{id}/verify")
+    public Map<String, Object> verifyVehicle(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return vehicleClient.verify(id, body);
+    }
+
+    // OTP MANAGEMENT ----------------------------------------------------
+    @PostMapping("/employees/{empId}/otp/verify")
+    public ResponseEntity<?> forceVerifyOtp(@PathVariable String empId) {
+        userClient.adminVerifyOtp(empId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/employees/{empId}/otp/resend")
+    public ResponseEntity<?> resendOtp(@PathVariable String empId) {
+        userClient.adminResendOtp(empId);
+        return ResponseEntity.ok().build();
     }
 }

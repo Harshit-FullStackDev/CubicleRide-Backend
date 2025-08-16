@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
@@ -40,7 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     @Nonnull FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
             final String token = authHeader.substring(7);
             try {
                 Claims claims = jwtUtil.extractAllClaims(token);
@@ -55,10 +57,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (log.isDebugEnabled()) {
+                    log.debug("JWT authenticated request: principal={}, role={}, path={}", empId, role, request.getRequestURI());
+                }
 
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                log.warn("JWT parse/validation failed: {} path={}", e.getMessage(), request.getRequestURI());
                 return;
+            }
+        }
+        else {
+            if (log.isDebugEnabled()) {
+                log.debug("No Authorization header for path {}", request.getRequestURI());
             }
         }
 
