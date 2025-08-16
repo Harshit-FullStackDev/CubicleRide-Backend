@@ -21,8 +21,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,11 +46,7 @@ public class RideService {
                 HttpServletRequest req = attrs.getRequest();
                 authHeader = req.getHeader("Authorization");
             }
-            String url = "http://localhost:8082/vehicle/" + ride.getOwnerEmpId();
-            HttpHeaders headers = new HttpHeaders();
-            if (authHeader != null) headers.set("Authorization", authHeader);
-            ResponseEntity<VehicleInfo> resp = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), VehicleInfo.class);
-            VehicleInfo v = resp.getBody();
+            VehicleInfo v = fetchVehicleInfoCached(ride.getOwnerEmpId(), authHeader);
             if (v == null || v.getStatus() == null || !"APPROVED".equalsIgnoreCase(v.getStatus())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vehicle not approved. Please submit vehicle details and wait for approval before offering rides.");
             }
@@ -78,20 +75,17 @@ public class RideService {
         }
 
         expirePastRidesInternal();
+        // Conflict check: stop early on first active future ride (reduces iterations)
         List<Ride> activeOwned = rideRepository.findByOwnerEmpIdAndStatus(ride.getOwnerEmpId(), "Active");
         LocalDateTime now = LocalDateTime.now();
         for (Ride r : activeOwned) {
-            if (r.getDate() != null && r.getArrivalTime() != null) {
-                try {
-                    LocalTime at = LocalTime.parse(r.getArrivalTime());
-                    LocalDateTime scheduled = LocalDateTime.of(r.getDate(), at);
-                    if (now.isBefore(scheduled)) {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
-                    }
-                } catch (Exception ignored) {
+            if (r.getDate() == null || r.getArrivalTime() == null) throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
+            try {
+                LocalTime at = LocalTime.parse(r.getArrivalTime());
+                if (now.isBefore(LocalDateTime.of(r.getDate(), at))) {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
                 }
-            } else {
+            } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, ACTIVE_RIDE_CONFLICT_MSG);
             }
         }
@@ -218,27 +212,25 @@ public class RideService {
     // EXPIRY & HISTORY --------------------------------------------
     public void expirePastRidesInternal() {
         List<Ride> activeRides = rideRepository.findByStatus("Active");
+        if (activeRides.isEmpty()) return;
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
+        List<Ride> toExpire = new ArrayList<>();
         for (Ride r : activeRides) {
-            boolean expire = false;
-            if (r.getDate() != null) {
-                if (r.getDate().isBefore(today)) expire = true;
-                else if (r.getDate().isEqual(today)) {
-                    try {
-                        if (r.getArrivalTime() != null) {
-                            LocalTime at = LocalTime.parse(r.getArrivalTime());
-                            if (!at.isAfter(nowTime)) expire = true;
-                        }
-                    } catch (Exception ignored) {}
-                }
+            if (r.getDate() == null) continue;
+            boolean expire = r.getDate().isBefore(today);
+            if (!expire && r.getDate().isEqual(today) && r.getArrivalTime() != null) {
+                try {
+                    expire = !LocalTime.parse(r.getArrivalTime()).isAfter(nowTime);
+                } catch (Exception ignored) {}
             }
             if (expire) {
                 r.setStatus("Expired");
                 r.setUpdatedAt(LocalDateTime.now());
-                rideRepository.save(r);
+                toExpire.add(r);
             }
         }
+        if (!toExpire.isEmpty()) rideRepository.saveAll(toExpire);
     }
 
     public List<RideResponseDTO> getPublishedRideHistory(String ownerEmpId) {
@@ -303,7 +295,8 @@ public class RideService {
             String authHeader = req.getHeader("Authorization");
             jwt = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader : null;
         } else jwt = null;
-        return rides.stream().map(ride -> buildDto(ride, defaultStatus, jwt)).toList();
+    if (rides.isEmpty()) return List.of();
+    return buildDtosBatch(rides, defaultStatus, jwt);
     }
 
     private RideResponseDTO buildDto(Ride ride, String defaultStatus, String jwt) {
@@ -332,8 +325,8 @@ public class RideService {
         boolean viewerJoined = viewerEmpId != null && ride.getJoinedEmpIds().contains(viewerEmpId);
         boolean canSeeOwnerPhone = viewerIsOwner || viewerJoined; // joined implies approved already
 
-        List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> mapEmployee(empId, jwt)).toList();
-        List<JoinedEmployeeDTO> pendingEmployees = mapPending(ride.getPendingEmpIds(), jwt);
+    List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> mapEmployeeCached(empId, jwt)).toList();
+    List<JoinedEmployeeDTO> pendingEmployees = mapPending(ride.getPendingEmpIds(), jwt);
 
         // Apply phone visibility rules
         if (!canSeeOwnerPhone) ownerPhone = null; // hide owner's phone if not joined/owner
@@ -371,12 +364,18 @@ public class RideService {
                 .build();
     }
 
-    private JoinedEmployeeDTO mapEmployee(String empId, String jwt) {
+    private final Map<String, JoinedEmployeeDTO> employeeCache = new ConcurrentHashMap<>();
+    private final Map<String, VehicleInfo> vehicleCache = new ConcurrentHashMap<>();
+
+    private JoinedEmployeeDTO mapEmployeeCached(String empId, String jwt) {
+        return employeeCache.computeIfAbsent(empId, id -> fetchEmployee(id, jwt));
+    }
+
+    private JoinedEmployeeDTO fetchEmployee(String empId, String jwt) {
         try {
-            String url = "http://localhost:8082/employee/" + empId;
             HttpHeaders headers = new HttpHeaders();
             if (jwt != null) headers.set("Authorization", jwt);
-            ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
+            ResponseEntity<EmployeeProfile> response = restTemplate.exchange("http://localhost:8082/employee/" + empId, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
             EmployeeProfile emp = response.getBody();
             if (emp != null) return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail(), emp.getPhone());
         } catch (Exception e) { log.error("Failed to fetch employee {}: {}", empId, e.getMessage()); }
@@ -385,7 +384,30 @@ public class RideService {
 
     private List<JoinedEmployeeDTO> mapPending(List<String> pendingIds, String jwt) {
         if (pendingIds == null || pendingIds.isEmpty()) return List.of();
-        return pendingIds.stream().map(id -> mapEmployee(id, jwt)).toList();
+        return pendingIds.stream().map(id -> mapEmployeeCached(id, jwt)).toList();
+    }
+
+    private VehicleInfo fetchVehicleInfoCached(String empId, String jwt) {
+        return vehicleCache.computeIfAbsent(empId, id -> {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                if (jwt != null) headers.set("Authorization", jwt);
+                ResponseEntity<VehicleInfo> resp = restTemplate.exchange("http://localhost:8082/vehicle/" + empId, HttpMethod.GET, new HttpEntity<>(headers), VehicleInfo.class);
+                return resp.getBody();
+            } catch (Exception e) {
+                log.error("Failed vehicle fetch {}: {}", empId, e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    private List<RideResponseDTO> buildDtosBatch(List<Ride> rides, String defaultStatus, String jwt) {
+        // Pre-fetch owner profiles distinct to minimize remote calls
+        Set<String> ownerIds = rides.stream().map(Ride::getOwnerEmpId).collect(Collectors.toSet());
+        for (String ownerId : ownerIds) { employeeCache.computeIfAbsent(ownerId, id -> fetchEmployee(id, jwt)); }
+        List<RideResponseDTO> result = new ArrayList<>(rides.size());
+        for (Ride ride : rides) { result.add(buildDto(ride, defaultStatus, jwt)); }
+        return result;
     }
 
     // PUBLIC LIST METHODS (using unified mapper) ------------------

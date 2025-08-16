@@ -3,6 +3,10 @@ package com.orangemantra.employeeservice.model;
 import jakarta.persistence.*;
 import lombok.*;
 @Entity
+@Table(indexes = {
+    @Index(name = "idx_employee_emp_id", columnList = "empId"),
+    @Index(name = "idx_employee_email", columnList = "email")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

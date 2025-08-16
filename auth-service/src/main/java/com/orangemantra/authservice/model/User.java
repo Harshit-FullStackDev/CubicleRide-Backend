@@ -3,6 +3,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@Table(indexes = {
+    @Index(name = "idx_user_emp_id", columnList = "emp_id"),
+    @Index(name = "idx_user_email", columnList = "email")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,8 +23,10 @@ public class User {
     private String email;
     private String password;
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private Role role = Role.EMPLOYEE;
 
+    @Builder.Default
     private boolean isVerified = false;
     private String otp;
 }

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.orangemantra.rideservice.dto.JoinRequest;
 import com.orangemantra.rideservice.dto.OfferRideRequest;
+import jakarta.validation.Valid;
 import com.orangemantra.rideservice.dto.RideResponseDTO;
 import com.orangemantra.rideservice.model.Ride;
 import com.orangemantra.rideservice.service.NotificationService;
@@ -34,7 +35,7 @@ public class RideController {
     private final NotificationService notificationService;
 
     @PostMapping("/offer")
-    public Ride offerRide(@RequestBody OfferRideRequest request) {
+    public Ride offerRide(@Valid @RequestBody OfferRideRequest request) {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
 
         Ride ride = Ride.builder()
@@ -77,22 +78,34 @@ public class RideController {
     }
 
     @GetMapping("/all")
-    public List<RideResponseDTO> allRides() {
-    rideService.expirePastRidesInternal();
-    return rideService.getAllRidesWithEmployeeDetails();
+    public List<RideResponseDTO> allRides(@RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "50") int size) {
+        rideService.expirePastRidesInternal();
+        List<RideResponseDTO> all = rideService.getAllRidesWithEmployeeDetails();
+        int from = Math.min(page * size, all.size());
+        int to = Math.min(from + size, all.size());
+        return all.subList(from, to);
     }
 
     @GetMapping("/active")
-    public List<RideResponseDTO> activeRides() {
+    public List<RideResponseDTO> activeRides(@RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "50") int size) {
         rideService.expirePastRidesInternal();
-        return rideService.getActiveRidesWithEmployeeDetails();
+        List<RideResponseDTO> list = rideService.getActiveRidesWithEmployeeDetails();
+        int from = Math.min(page * size, list.size());
+        int to = Math.min(from + size, list.size());
+        return list.subList(from, to);
     }
 
     @GetMapping("/my-rides")
-    public List<RideResponseDTO> myRides() {
+    public List<RideResponseDTO> myRides(@RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "50") int size) {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
-    rideService.expirePastRidesInternal();
-    return rideService.getRidesWithEmployeeDetailsByOwner(empId);
+        rideService.expirePastRidesInternal();
+        List<RideResponseDTO> list = rideService.getRidesWithEmployeeDetailsByOwner(empId);
+        int from = Math.min(page * size, list.size());
+        int to = Math.min(from + size, list.size());
+        return list.subList(from, to);
     }
     @PutMapping("/edit/{id}")
     public Ride updateRide(@PathVariable Long id, @RequestBody Ride updatedRide) {
@@ -109,9 +122,14 @@ public class RideController {
     }
 
     @GetMapping("/joined/{empId}")
-    public List<RideResponseDTO> getJoinedRides(@PathVariable String empId) {
-    rideService.expirePastRidesInternal();
-    return rideService.getJoinedRidesWithEmployeeDetails(empId);
+    public List<RideResponseDTO> getJoinedRides(@PathVariable String empId,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "50") int size) {
+        rideService.expirePastRidesInternal();
+        List<RideResponseDTO> list = rideService.getJoinedRidesWithEmployeeDetails(empId);
+        int from = Math.min(page * size, list.size());
+        int to = Math.min(from + size, list.size());
+        return list.subList(from, to);
     }
 
     @PostMapping("/leave/{rideId}")

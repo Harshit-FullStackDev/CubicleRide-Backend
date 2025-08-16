@@ -11,12 +11,19 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(indexes = {
+    @Index(name = "idx_ride_owner_status", columnList = "ownerEmpId,status"),
+    @Index(name = "idx_ride_status", columnList = "status"),
+    @Index(name = "idx_ride_date_status", columnList = "date,status")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

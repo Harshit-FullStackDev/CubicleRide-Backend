@@ -11,15 +11,16 @@ package com.orangemantra.authservice.util;
 
 import com.orangemantra.authservice.model.User;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
-public class JwtUtil {
+public class JwtUtil implements InitializingBean {
 
     @Value("${jwt.secret}")
     private String secret;
@@ -27,16 +28,23 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    private SecretKey key;
+
+    @Override
+    public void afterPropertiesSet() { this.key = Keys.hmacShaKeyFor(secret.getBytes()); }
+
     public String generateToken(User user) {
+        long now = System.currentTimeMillis();
+        Date issued = new Date(now);
+        Date exp = new Date(now + expiration);
         return Jwts.builder()
-                .setSubject(user.getEmail())
+                .subject(user.getEmail())
                 .claim("role", user.getRole().name())
                 .claim("empId", user.getEmpId())
                 .claim("name", user.getName())
-
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
+                .issuedAt(issued)
+                .expiration(exp)
+                .signWith(key)
                 .compact();
     }
 }
