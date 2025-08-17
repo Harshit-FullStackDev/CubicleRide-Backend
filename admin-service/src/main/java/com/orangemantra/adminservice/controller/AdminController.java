@@ -26,6 +26,16 @@ public class AdminController {
     private final UserClient userClient;
     private final VehicleClient vehicleClient;
 
+    // BASIC HEALTH for manual UI consumption (lightweight alternative to actuator)
+    @GetMapping("/health")
+    public Map<String, Object> health() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("status", "UP");
+        map.put("service", "admin-service");
+        map.put("timestamp", System.currentTimeMillis());
+        return map;
+    }
+
     @GetMapping("/employees")
     public List<EmployeeDTO> getAllEmployees() {
         return employeeClient.getAllEmployees();

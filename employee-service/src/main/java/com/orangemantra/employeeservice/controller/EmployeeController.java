@@ -18,6 +18,10 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
     private final EmployeeRepository repository;
+    @GetMapping("/health")
+    public java.util.Map<String,Object> health(){
+        return java.util.Map.of("status","UP","service","employee-service","timestamp",System.currentTimeMillis());
+    }
     @PostMapping("/route")
     public String assignRoute(@RequestBody RouteRequest request) {
         return employeeService.assignRoute(request);

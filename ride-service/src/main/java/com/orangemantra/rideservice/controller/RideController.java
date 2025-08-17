@@ -34,6 +34,11 @@ public class RideController {
     private final RideService rideService;
     private final NotificationService notificationService;
 
+    @GetMapping("/health")
+    public java.util.Map<String,Object> health(){
+        return java.util.Map.of("status","UP","service","ride-service","timestamp",System.currentTimeMillis());
+    }
+
     @PostMapping("/offer")
     public Ride offerRide(@Valid @RequestBody OfferRideRequest request) {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();

@@ -15,6 +15,11 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @GetMapping("/health")
+    public java.util.Map<String,Object> health(){
+        return java.util.Map.of("status","UP","service","auth-service","timestamp",System.currentTimeMillis());
+    }
+
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
         authService.register(request);
@@ -48,6 +53,12 @@ public class AuthController {
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP or email.");
         }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody OtpVerifyRequest request) {
+        authService.resendOtp(request.getEmail());
+        return ResponseEntity.ok().build();
     }
 
     // --- Admin OTP operations ---

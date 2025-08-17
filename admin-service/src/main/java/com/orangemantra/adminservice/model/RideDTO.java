@@ -8,8 +8,15 @@ import java.util.List;
 public class RideDTO {
     private Long id;
     private String ownerEmpId;
-    private String route;
+    private String origin;
+    private String destination;
+    private String date;
+    private String arrivalTime;
+    private String carDetails;
     private int totalSeats;
     private int availableSeats;
-    private List<String> joinedEmpIds;
+    private String fare;
+    private String status;
+    private boolean instantBookingEnabled;
+    private List<String> joinedEmpIds; // simple list for admin overview
 }

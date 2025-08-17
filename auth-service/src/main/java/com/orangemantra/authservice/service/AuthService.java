@@ -81,6 +81,20 @@ public class AuthService {
         return false;
     }
 
+    /**
+     * Resend OTP to the given (unverified) email. Silently no-op if user not found or already verified.
+     */
+    public void resendOtp(String email) {
+        if (email == null || email.isBlank()) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (user.isVerified()) return; // already verified – don't resend
+            String otp = String.valueOf((int)((Math.random() * 900000) + 100000));
+            user.setOtp(otp);
+            userRepository.save(user);
+            sendOtpEmail(user.getEmail(), otp);
+        });
+    }
+
     public AuthResponse login(AuthRequest req) {
     User user = userRepository.findByEmail(req.getEmail())
         .orElseThrow(() -> new RuntimeException("Invalid email"));
