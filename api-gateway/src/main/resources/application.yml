@@ -24,6 +24,18 @@ spring:
               predicates:
                         - Path=/ride/**, /locations
 
+            - id: ride-service-ws-direct
+              uri: lb://ride-service
+              predicates:
+                - Path=/ws/**
+
+            - id: ride-service-ws-api
+              uri: lb://ride-service
+              predicates:
+                - Path=/api/ws/**
+              filters:
+                - StripPrefix=1
+
             - id: admin-service
               uri: lb://admin-service
               predicates:
@@ -37,4 +49,3 @@ eureka:
     prefer-ip-address: true
 jwt:
   secret: "qwertyuiopasdfghjklzxcvbnmqwertyuiop"
-

@@ -71,5 +71,4 @@ public class EmployeeController {
         Employee employee = employeeService.getProfile(empId);
         return ResponseEntity.ok(employee.getName());
     }
-
 }

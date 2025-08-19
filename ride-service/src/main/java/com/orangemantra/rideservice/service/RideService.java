@@ -31,6 +31,7 @@ public class RideService {
     private final RideRepository rideRepository;
     private final RestTemplate restTemplate;
     private final JwtUtil jwtUtil;
+    private final ChatService chatService;
     private static final Logger log = LoggerFactory.getLogger(RideService.class);
     private static final String ACTIVE_RIDE_CONFLICT_MSG = "You already have a published ride. Please publish a new ride after the active ride ends.";
 
@@ -58,7 +59,7 @@ public class RideService {
                 if (v.getMake() != null && !v.getMake().isBlank()) sb.append(v.getMake()).append(' ');
                 if (v.getModel() != null && !v.getModel().isBlank()) sb.append(v.getModel()).append(' ');
                 if (v.getRegistrationNumber() != null && !v.getRegistrationNumber().isBlank()) {
-                    if (sb.length() > 0) sb.append('(').append(v.getRegistrationNumber()).append(')');
+                    if (!sb.isEmpty()) sb.append('(').append(v.getRegistrationNumber()).append(')');
                     else sb.append(v.getRegistrationNumber());
                 }
                 String details = sb.toString().trim().replaceAll(" +", " ");
@@ -117,6 +118,7 @@ public class RideService {
             ride.getJoinedEmpIds().add(empId);
             ride.setAvailableSeats(ride.getAvailableSeats() - 1);
         } else {
+            assert ride.getPendingEmpIds() != null;
             ride.getPendingEmpIds().add(empId);
         }
         ride.setUpdatedAt(LocalDateTime.now());
@@ -192,6 +194,8 @@ public class RideService {
         existing.setStatus("Cancelled");
         existing.setUpdatedAt(LocalDateTime.now());
         rideRepository.save(existing);
+        // notify chat closure for this ride
+        try { chatService.notifyRideClosed(existing); } catch (Exception ignored) {}
         if (beforeArrival && !joined.isEmpty()) notifyJoinedOnCancel(existing, joined);
     }
 
@@ -230,7 +234,11 @@ public class RideService {
                 toExpire.add(r);
             }
         }
-        if (!toExpire.isEmpty()) rideRepository.saveAll(toExpire);
+        if (!toExpire.isEmpty()) {
+            rideRepository.saveAll(toExpire);
+            // broadcast closure events
+            for (Ride r : toExpire) { try { chatService.notifyRideClosed(r); } catch (Exception ignored) {} }
+        }
     }
 
     public List<RideResponseDTO> getPublishedRideHistory(String ownerEmpId) {

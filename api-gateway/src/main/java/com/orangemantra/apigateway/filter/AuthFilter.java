@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -40,14 +41,16 @@ public class AuthFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
 
-        if (
-                request.getURI().getPath().contains("/auth") ||
-                        request.getURI().getPath().equals("/locations")
-        ) {
+        // Allow auth endpoints, locations, websocket handshakes and SockJS probes, and OPTIONS
+        if (path.contains("/auth") ||
+            "/locations".equals(path) ||
+            path.startsWith("/ws") ||
+            path.startsWith("/api/ws") ||
+            request.getMethod() == HttpMethod.OPTIONS) {
             return chain.filter(exchange);
         }
-
 
         String authHeader = request.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -62,7 +65,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-
+            // Optionally validate claims as needed
         } catch (Exception ex) {
             log.error("Invalid JWT: {}", ex.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
@@ -73,7 +76,5 @@ public class AuthFilter implements GlobalFilter, Ordered {
     }
 
     @Override
-    public int getOrder() {
-        return -1;
-    }
+    public int getOrder() { return -1; }
 }

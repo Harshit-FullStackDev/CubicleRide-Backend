@@ -18,6 +18,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/ride/all", "/ride/route/**","/ride/available","/ride/my-rides","/locations").permitAll()
+                        // allow websocket handshake without JWT; STOMP CONNECT will carry JWT
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
