@@ -8,6 +8,7 @@ import com.orangemantra.authservice.model.Role;
 import com.orangemantra.authservice.repository.UserRepository;
 import com.orangemantra.authservice.util.JwtUtil;
 import com.orangemantra.authservice.dto.EmployeeRegisterRequest;
+import com.orangemantra.authservice.util.HashUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.mail.MailException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,18 +31,21 @@ public class AuthService {
     private final JavaMailSender mailSender;
 
     public void register(RegisterRequest req) {
+        String emailLower = req.getEmail() == null ? null : req.getEmail().trim().toLowerCase();
+        String emailHash = HashUtil.sha256Hex(emailLower);
         if (userRepository.existsByEmpId(req.getEmpId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already registered (emp_id).");
         }
-        if (userRepository.existsByEmail(req.getEmail())) {
+        if (emailHash != null && userRepository.existsByEmailHash(emailHash)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee already registered (email).");
         }
-     
+
         String otp = String.valueOf((int)((Math.random() * 900000) + 100000)); // 6-digit OTP
         User user = User.builder()
                 .empId(req.getEmpId())
                 .name(req.getName())
-                .email(req.getEmail())
+                .email(req.getEmail()) // encrypted via JPA converter
+                .emailHash(emailHash)
                 .password(passwordEncoder.encode(req.getPassword()))
                 .role(Role.EMPLOYEE)
                 .isVerified(false)
@@ -50,10 +55,10 @@ public class AuthService {
         EmployeeRegisterRequest emp = new EmployeeRegisterRequest();
         emp.setEmpId(user.getEmpId());
         emp.setName(user.getName());
-        emp.setEmail(user.getEmail());
+        emp.setEmail(req.getEmail()); // send plaintext to employee-service; it will encrypt/hash internally
         employeeClient.saveEmployee(emp);
    
-        sendOtpEmail(user.getEmail(), otp);
+        sendOtpEmail(req.getEmail(), otp);
     }
 
     private void sendOtpEmail(String email, String otp) {
@@ -64,14 +69,14 @@ public class AuthService {
             helper.setSubject("OTP for Email Verification OrangeMantra Carpool");
             helper.setText("Your OTP is: " + otp + "\nPlease enter this OTP to verify your email.", false);
             mailSender.send(message);
-        } catch (MessagingException e) {
-         
+        } catch (Exception e) { // catch MailAuthenticationException and others
             System.out.println("Failed to send OTP email: " + e.getMessage());
         }
     }
 
     public boolean verifyOtp(String email, String otp) {
-        User user = userRepository.findByEmail(email).orElse(null);
+        String hash = HashUtil.sha256Hex(email == null ? null : email.trim().toLowerCase());
+        User user = (hash == null) ? null : userRepository.findByEmailHash(hash).orElse(null);
         if (user != null && user.getOtp() != null && user.getOtp().equals(otp)) {
             user.setVerified(true);
             user.setOtp(null); // clear OTP after verification
@@ -85,24 +90,26 @@ public class AuthService {
      * Resend OTP to the given (unverified) email. Silently no-op if user not found or already verified.
      */
     public void resendOtp(String email) {
-        if (email == null || email.isBlank()) return;
-        userRepository.findByEmail(email).ifPresent(user -> {
+        String hash = HashUtil.sha256Hex(email == null ? null : email.trim().toLowerCase());
+        if (hash == null) return;
+        userRepository.findByEmailHash(hash).ifPresent(user -> {
             if (user.isVerified()) return; // already verified – don't resend
             String otp = String.valueOf((int)((Math.random() * 900000) + 100000));
             user.setOtp(otp);
             userRepository.save(user);
-            sendOtpEmail(user.getEmail(), otp);
+            sendOtpEmail(email, otp);
         });
     }
 
     public AuthResponse login(AuthRequest req) {
-    User user = userRepository.findByEmail(req.getEmail())
-        .orElseThrow(() -> new RuntimeException("Invalid email"));
+        String hash = HashUtil.sha256Hex(req.getEmail() == null ? null : req.getEmail().trim().toLowerCase());
+        User user = (hash == null) ? null : userRepository.findByEmailHash(hash)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
         if (!user.isVerified()) {
-            throw new RuntimeException("Email not verified. Please verify your email before logging in.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email not verified. Please verify your email before logging in.");
         }
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
         return new AuthResponse(jwtUtil.generateToken(user));
     }
@@ -115,8 +122,11 @@ public class AuthService {
         User user = userRepository.findByEmpId(empId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         user.setName(employeeRequest.getName());
-        user.setEmail(employeeRequest.getEmail());
-     
+        if (employeeRequest.getEmail() != null && !employeeRequest.getEmail().isBlank()) {
+            String emailLower = employeeRequest.getEmail().trim().toLowerCase();
+            user.setEmail(employeeRequest.getEmail());
+            user.setEmailHash(HashUtil.sha256Hex(emailLower));
+        }
         userRepository.save(user);
     }
 

@@ -3,6 +3,7 @@ package com.orangemantra.employeeservice.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import com.orangemantra.employeeservice.util.StringCryptoConverter;
 
 @Entity
 @Data
@@ -20,6 +21,8 @@ public class Vehicle {
     private String make;
     private String model;
     private String color;
+
+    @Convert(converter = StringCryptoConverter.class)
     private String registrationNumber;
     private Integer capacity; // total seats including driver
 

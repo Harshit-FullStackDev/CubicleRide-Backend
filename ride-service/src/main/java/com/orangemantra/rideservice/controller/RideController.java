@@ -167,4 +167,10 @@ public class RideController {
     public List<RideResponseDTO> joinedHistory(@PathVariable String empId) {
         return rideService.getJoinedRideHistory(empId);
     }
+
+    @PostMapping("/cancel/{id}")
+    public ResponseEntity<Void> cancelRide(@PathVariable Long id) {
+        rideService.deleteRide(id); // marks as Cancelled and notifies
+        return ResponseEntity.ok().build();
+    }
 }

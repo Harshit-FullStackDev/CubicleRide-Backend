@@ -7,8 +7,9 @@ import java.util.Optional;
 import java.util.List;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-    // Kept for backward compatibility; SHOULD be unique but may throw if duplicates exist.
-    Optional<Employee> findByEmail(String email);
+    // Deterministic lookup via emailHash (SHA-256 of lowercase email)
+    Optional<Employee> findByEmailHash(String emailHash);
+    boolean existsByEmailHash(String emailHash);
 
     // Use list-based accessors to guard against unexpected duplicates
     List<Employee> findAllByEmpId(String empId);

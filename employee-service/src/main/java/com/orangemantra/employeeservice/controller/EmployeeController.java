@@ -5,6 +5,7 @@ import com.orangemantra.employeeservice.dto.RouteRequest;
 import com.orangemantra.employeeservice.model.Employee;
 import com.orangemantra.employeeservice.repository.EmployeeRepository;
 import com.orangemantra.employeeservice.service.EmployeeService;
+import com.orangemantra.employeeservice.util.HashUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,19 +38,22 @@ public class EmployeeController {
         if (!repository.findAllByEmpId(req.getEmpId()).isEmpty()) {
             return ResponseEntity.status(409).body("Employee with empId already exists");
         }
-        if (req.getEmail() != null && repository.findByEmail(req.getEmail()).isPresent()) {
+        String emailLower = req.getEmail() == null ? null : req.getEmail().trim().toLowerCase();
+        String emailHash = HashUtil.sha256Hex(emailLower);
+        if (emailHash != null && repository.existsByEmailHash(emailHash)) {
             return ResponseEntity.status(409).body("Employee with email already exists");
         }
         Employee employee = new Employee();
         employee.setEmpId(req.getEmpId());
         employee.setName(req.getName());
         employee.setEmail(req.getEmail());
-    employee.setPhone(req.getPhone());
-    employee.setDepartment(req.getDepartment());
-    employee.setDesignation(req.getDesignation());
-    employee.setOfficeLocation(req.getOfficeLocation());
-    employee.setGender(req.getGender());
-    employee.setBio(req.getBio());
+        employee.setEmailHash(emailHash);
+        employee.setPhone(req.getPhone());
+        employee.setDepartment(req.getDepartment());
+        employee.setDesignation(req.getDesignation());
+        employee.setOfficeLocation(req.getOfficeLocation());
+        employee.setGender(req.getGender());
+        employee.setBio(req.getBio());
         repository.save(employee);
         return ResponseEntity.ok("Employee saved successfully");
     }

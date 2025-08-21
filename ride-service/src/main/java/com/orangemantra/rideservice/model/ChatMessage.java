@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import com.orangemantra.rideservice.util.StringCryptoConverter;
 
 @Entity
 @Table(name = "chat_messages", indexes = {
@@ -26,6 +27,7 @@ public class ChatMessage {
     private String toEmpId;
 
     @Column(length = 2000)
+    @Convert(converter = StringCryptoConverter.class)
     private String content;
 
     private Instant ts;
@@ -33,4 +35,3 @@ public class ChatMessage {
     @Builder.Default
     private boolean readFlag = false;
 }
-

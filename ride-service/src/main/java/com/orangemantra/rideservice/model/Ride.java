@@ -1,22 +1,16 @@
 package com.orangemantra.rideservice.model;
 
+import com.orangemantra.rideservice.util.StringCryptoConverter;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.proxy.HibernateProxy;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.math.BigDecimal;
-
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Index;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Objects;
 
 @Entity
 @Table(indexes = {
@@ -24,7 +18,9 @@ import lombok.NoArgsConstructor;
     @Index(name = "idx_ride_status", columnList = "status"),
     @Index(name = "idx_ride_date_status", columnList = "date,status")
 })
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,6 +38,7 @@ public class Ride {
     private LocalDate date;
     private String arrivalTime;
 
+    @Convert(converter = StringCryptoConverter.class)
     private String carDetails;
 
     private int totalSeats;
@@ -66,4 +63,20 @@ public class Ride {
     private String status; // Active, Expired, Cancelled
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        Ride ride = (Ride) o;
+        return getId() != null && Objects.equals(getId(), ride.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+    }
 }

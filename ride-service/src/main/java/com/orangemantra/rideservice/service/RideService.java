@@ -24,6 +24,7 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -243,7 +244,11 @@ public class RideService {
 
     public List<RideResponseDTO> getPublishedRideHistory(String ownerEmpId) {
         expirePastRidesInternal();
-        return mapRidesToDtoWithEmployees(rideRepository.findByOwnerEmpIdAndStatus(ownerEmpId, "Expired"), "Expired");
+        List<Ride> allOwner = rideRepository.findByOwnerEmpId(ownerEmpId);
+        List<Ride> history = allOwner.stream()
+                .filter(r -> r.getStatus() != null && ("Expired".equalsIgnoreCase(r.getStatus()) || "Cancelled".equalsIgnoreCase(r.getStatus())))
+                .toList();
+        return mapRidesToDtoWithEmployees(history, "Expired");
     }
     public List<RideResponseDTO> getJoinedRideHistory(String empId) {
         expirePastRidesInternal();
