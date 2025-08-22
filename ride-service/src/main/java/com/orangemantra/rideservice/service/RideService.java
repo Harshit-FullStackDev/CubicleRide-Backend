@@ -5,6 +5,7 @@ import com.orangemantra.rideservice.dto.RideResponseDTO;
 import com.orangemantra.rideservice.util.JwtUtil;
 import com.orangemantra.rideservice.model.Ride;
 import com.orangemantra.rideservice.repository.RideRepository;
+import com.orangemantra.rideservice.messaging.NotificationProducer;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,6 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +33,7 @@ public class RideService {
     private final RestTemplate restTemplate;
     private final JwtUtil jwtUtil;
     private final ChatService chatService;
+    private final NotificationProducer notificationProducer;
     private static final Logger log = LoggerFactory.getLogger(RideService.class);
     private static final String ACTIVE_RIDE_CONFLICT_MSG = "You already have a published ride. Please publish a new ride after the active ride ends.";
 
@@ -257,44 +258,22 @@ public class RideService {
 
     // NOTIFICATIONS ----------------------------------------------
     private void notifyJoinedOnCancel(Ride ride, List<String> joinedEmpIds) {
-        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        final String jwt;
-        if (attrs != null) {
-            HttpServletRequest req = attrs.getRequest();
-            String authHeader = req.getHeader("Authorization");
-            jwt = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader : null;
-        } else jwt = null;
         try {
-            HttpHeaders headers = new HttpHeaders();
-            if (jwt != null) headers.set("Authorization", jwt);
-            headers.set("Content-Type", "application/json");
             for (String je : joinedEmpIds) {
-                NotificationService.NotificationRequest note = new NotificationService.NotificationRequest(
-                        je,
-                        "Your ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been cancelled by the owner."
+                notificationProducer.send(
+                    je,
+                    "Your ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been cancelled by the owner."
                 );
-                restTemplate.postForEntity("http://localhost:8082/notifications", new HttpEntity<>(note, headers), Void.class);
             }
         } catch (Exception e) { log.error("Failed to send cancellation notifications: {}", e.getMessage()); }
     }
     private void notifyJoinedOnUpdate(Ride ride, List<String> joinedEmpIds) {
-        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        final String jwt;
-        if (attrs != null) {
-            HttpServletRequest req = attrs.getRequest();
-            String authHeader = req.getHeader("Authorization");
-            jwt = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader : null;
-        } else jwt = null;
         try {
-            HttpHeaders headers = new HttpHeaders();
-            if (jwt != null) headers.set("Authorization", jwt);
-            headers.set("Content-Type", "application/json");
             for (String je : joinedEmpIds) {
-                NotificationService.NotificationRequest note = new NotificationService.NotificationRequest(
-                        je,
-                        "A ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been updated by the owner."
+                notificationProducer.send(
+                    je,
+                    "A ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been updated by the owner."
                 );
-                restTemplate.postForEntity("http://localhost:8082/notifications", new HttpEntity<>(note, headers), Void.class);
             }
         } catch (Exception e) { log.error("Failed to send update notifications: {}", e.getMessage()); }
     }
