@@ -12,7 +12,7 @@ public final class HashUtil {
             byte[] d = md.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(d.length * 2);
             for (byte b : d) sb.append(String.format("%02x", b));
-            return sb.toString();
+            return sb.toString();   
         } catch (Exception e) {
             return null;
         }

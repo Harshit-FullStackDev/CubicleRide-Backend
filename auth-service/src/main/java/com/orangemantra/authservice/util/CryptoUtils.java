@@ -1,3 +1,9 @@
+// AES 256 GCM encryption/decryption utility
+// Requires initialization with a secret key (32 bytes recommended) using init(String secret)
+// Encrypts with a random 12-byte IV, prepended to the ciphertext
+// Encrypted output format: "ENC::" + Base64(IV) + ":" + Base64(ciphertext)
+// Decrypts only if the input starts with "ENC::", otherwise returns the input as-is
+// If encryption/decryption fails, returns the input as-is
 package com.orangemantra.authservice.util;
 
 import javax.crypto.Cipher;
