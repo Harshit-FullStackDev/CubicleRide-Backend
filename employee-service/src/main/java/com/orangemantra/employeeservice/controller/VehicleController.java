@@ -28,13 +28,13 @@ public class VehicleController {
     }
 
     @GetMapping("/{empId}")
-    public VehicleResponse getByEmpId(@PathVariable String empId) {
+    public VehicleResponse getByEmpId(@PathVariable("empId") String empId) {
         return vehicleService.getByEmpId(empId);
     }
 
     @PutMapping("/{id}/verify")
     @PreAuthorize("hasRole('ADMIN')")
-    public VehicleResponse verify(@PathVariable Long id, @RequestBody VehicleVerifyRequest request) {
+    public VehicleResponse verify(@PathVariable("id") Long id, @RequestBody VehicleVerifyRequest request) {
         return vehicleService.verify(id, request);
     }
 

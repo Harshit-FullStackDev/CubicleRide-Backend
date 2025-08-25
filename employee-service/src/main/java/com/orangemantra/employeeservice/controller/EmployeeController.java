@@ -29,7 +29,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/{empId}")
-    public Employee getProfile(@PathVariable String empId) {
+    public Employee getProfile(@PathVariable("empId") String empId) {
         return employeeService.getProfile(empId);
     }
     @PostMapping("/save")
@@ -62,16 +62,16 @@ public class EmployeeController {
         return employeeService.getAllEmployees();
     }
     @DeleteMapping("/{empId}")
-    public void deleteEmployee(@PathVariable String empId) {
+    public void deleteEmployee(@PathVariable("empId") String empId) {
         employeeService.deleteEmployee(empId);
     }
     @PutMapping("/{empId}")
-    public Employee updateEmployee(@PathVariable String empId, @RequestBody Employee employee) {
+    public Employee updateEmployee(@PathVariable("empId") String empId, @RequestBody Employee employee) {
         return employeeService.updateEmployee(empId, employee);
     }
     // Java
     @GetMapping("/{empId}/name")
-    public ResponseEntity<String> getEmployeeName(@PathVariable String empId) {
+    public ResponseEntity<String> getEmployeeName(@PathVariable("empId") String empId) {
         Employee employee = employeeService.getProfile(empId);
         return ResponseEntity.ok(employee.getName());
     }

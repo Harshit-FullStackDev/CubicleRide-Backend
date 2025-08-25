@@ -32,16 +32,16 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
     @DeleteMapping("/user/{empId}")
-    public void deleteUser(@PathVariable String empId) {
+    public void deleteUser(@PathVariable("empId") String empId) {
         authService.deleteUserByEmpId(empId);
     }
     @PutMapping("/user/{empId}")
-    public ResponseEntity<?> updateUser(@PathVariable String empId, @RequestBody EmployeeRegisterRequest employeeRequest) {
+    public ResponseEntity<?> updateUser(@PathVariable("empId") String empId, @RequestBody EmployeeRegisterRequest employeeRequest) {
         authService.updateUser(empId, employeeRequest);
         return ResponseEntity.ok().build();
     }
         @PutMapping("/user/name/{empId}")
-        public ResponseEntity<?> updateUserName(@PathVariable String empId, @RequestBody NameUpdateRequest nameUpdateRequest) {
+        public ResponseEntity<?> updateUserName(@PathVariable("empId") String empId, @RequestBody NameUpdateRequest nameUpdateRequest) {
             authService.updateUserName(empId, nameUpdateRequest);
             return ResponseEntity.ok().build();
         }
@@ -63,13 +63,13 @@ public class AuthController {
 
     // --- Admin OTP operations ---
     @PostMapping("/admin/otp/verify/{empId}")
-    public ResponseEntity<?> adminForceVerify(@PathVariable String empId) {
+    public ResponseEntity<?> adminForceVerify(@PathVariable("empId") String empId) {
         authService.adminVerifyOtp(empId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/admin/otp/resend/{empId}")
-    public ResponseEntity<?> adminResendOtp(@PathVariable String empId) {
+    public ResponseEntity<?> adminResendOtp(@PathVariable("empId") String empId) {
         authService.adminResendOtp(empId);
         return ResponseEntity.ok().build();
     }

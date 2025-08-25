@@ -27,10 +27,10 @@ public class ChatController {
     }
 
     @GetMapping("/messages")
-    public List<ChatDtos.MessageDTO> messages(@RequestParam Long rideId,
-                                              @RequestParam String otherEmpId,
-                                              @RequestParam(defaultValue = "0") int page,
-                                              @RequestParam(defaultValue = "50") int size) {
+    public List<ChatDtos.MessageDTO> messages(@RequestParam(name = "rideId") Long rideId,
+                                              @RequestParam(name = "otherEmpId") String otherEmpId,
+                                              @RequestParam(name = "page", defaultValue = "0") int page,
+                                              @RequestParam(name = "size", defaultValue = "50") int size) {
         String me = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         return chatService.listMessages(me, rideId, otherEmpId, page, size);
     }
@@ -56,7 +56,7 @@ public class ChatController {
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteViaRest(@RequestParam Long rideId, @RequestParam String otherEmpId) {
+    public ResponseEntity<Void> deleteViaRest(@RequestParam(name = "rideId") Long rideId, @RequestParam(name = "otherEmpId") String otherEmpId) {
         String me = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         chatService.deleteConversation(me, rideId, otherEmpId);
         return ResponseEntity.noContent().build();

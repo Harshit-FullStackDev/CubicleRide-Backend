@@ -23,12 +23,12 @@ public class NotificationController {
     }
 
     @GetMapping("/{userId}")
-    public List<Notification> getNotifications(@PathVariable String userId) {
+    public List<Notification> getNotifications(@PathVariable("userId") String userId) {
         return notificationService.getNotifications(userId);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteNotification(@PathVariable Long id) {
+    public void deleteNotification(@PathVariable("id") Long id) {
         notificationService.deleteNotification(id);
     }
 }

@@ -69,7 +69,7 @@ public class RideController {
     }
 
     @PostMapping("/join/{id}")
-    public ResponseEntity<Void> joinRide(@PathVariable Long id, @RequestBody JoinRequest req) {
+    public ResponseEntity<Void> joinRide(@PathVariable("id") Long id, @RequestBody JoinRequest req) {
         rideService.joinRide(id, req.getEmpId());
         notificationService.notifyRideOwnerOnJoin(id, req.getEmpId());
         return ResponseEntity.ok().build();
@@ -77,14 +77,14 @@ public class RideController {
 
     @GetMapping("/search")
     public List<Ride> getRidesByOriginDestination(
-            @RequestParam String origin,
-            @RequestParam String destination) {
+            @RequestParam(name = "origin") String origin,
+            @RequestParam(name = "destination") String destination) {
         return rideService.getRidesByOriginAndDestination(origin, destination);
     }
 
     @GetMapping("/all")
-    public List<RideResponseDTO> allRides(@RequestParam(defaultValue = "0") int page,
-                                          @RequestParam(defaultValue = "50") int size) {
+    public List<RideResponseDTO> allRides(@RequestParam(name = "page", defaultValue = "0") int page,
+                                          @RequestParam(name = "size", defaultValue = "50") int size) {
         rideService.expirePastRidesInternal();
         List<RideResponseDTO> all = rideService.getAllRidesWithEmployeeDetails();
         int from = Math.min(page * size, all.size());
@@ -93,8 +93,8 @@ public class RideController {
     }
 
     @GetMapping("/active")
-    public List<RideResponseDTO> activeRides(@RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "50") int size) {
+    public List<RideResponseDTO> activeRides(@RequestParam(name = "page", defaultValue = "0") int page,
+                                             @RequestParam(name = "size", defaultValue = "50") int size) {
         rideService.expirePastRidesInternal();
         List<RideResponseDTO> list = rideService.getActiveRidesWithEmployeeDetails();
         int from = Math.min(page * size, list.size());
@@ -103,8 +103,8 @@ public class RideController {
     }
 
     @GetMapping("/my-rides")
-    public List<RideResponseDTO> myRides(@RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "50") int size) {
+    public List<RideResponseDTO> myRides(@RequestParam(name = "page", defaultValue = "0") int page,
+                                         @RequestParam(name = "size", defaultValue = "50") int size) {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         rideService.expirePastRidesInternal();
         List<RideResponseDTO> list = rideService.getRidesWithEmployeeDetailsByOwner(empId);
@@ -113,23 +113,23 @@ public class RideController {
         return list.subList(from, to);
     }
     @PutMapping("/edit/{id}")
-    public Ride updateRide(@PathVariable Long id, @RequestBody Ride updatedRide) {
+    public Ride updateRide(@PathVariable("id") Long id, @RequestBody Ride updatedRide) {
         return rideService.updateRide(id, updatedRide);
     }
-    @GetMapping("edit/{id}")
-    public Ride getRideById(@PathVariable Long id) {
+    @GetMapping("/edit/{id}")
+    public Ride getRideById(@PathVariable("id") Long id) {
         return rideService.getRideById(id);
 
     }
     @DeleteMapping("/{id}")
-    public void deleteRide(@PathVariable Long id) {
+    public void deleteRide(@PathVariable("id") Long id) {
         rideService.deleteRide(id);
     }
 
     @GetMapping("/joined/{empId}")
-    public List<RideResponseDTO> getJoinedRides(@PathVariable String empId,
-                                                @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "50") int size) {
+    public List<RideResponseDTO> getJoinedRides(@PathVariable("empId") String empId,
+                                                @RequestParam(name = "page", defaultValue = "0") int page,
+                                                @RequestParam(name = "size", defaultValue = "50") int size) {
         rideService.expirePastRidesInternal();
         List<RideResponseDTO> list = rideService.getJoinedRidesWithEmployeeDetails(empId);
         int from = Math.min(page * size, list.size());
@@ -138,20 +138,20 @@ public class RideController {
     }
 
     @PostMapping("/leave/{rideId}")
-    public ResponseEntity<Void> leaveRide(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+    public ResponseEntity<Void> leaveRide(@PathVariable("rideId") Long rideId, @RequestBody JoinRequest req) {
         rideService.leaveRide(rideId, req.getEmpId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/approve/{rideId}")
-    public ResponseEntity<Void> approve(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+    public ResponseEntity<Void> approve(@PathVariable("rideId") Long rideId, @RequestBody JoinRequest req) {
         String ownerEmpId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         rideService.approveJoin(rideId, ownerEmpId, req.getEmpId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/decline/{rideId}")
-    public ResponseEntity<Void> decline(@PathVariable Long rideId, @RequestBody JoinRequest req) {
+    public ResponseEntity<Void> decline(@PathVariable("rideId") Long rideId, @RequestBody JoinRequest req) {
         String ownerEmpId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
         rideService.declineJoin(rideId, ownerEmpId, req.getEmpId());
         return ResponseEntity.ok().build();
@@ -164,12 +164,12 @@ public class RideController {
     }
 
     @GetMapping("/history/joined/{empId}")
-    public List<RideResponseDTO> joinedHistory(@PathVariable String empId) {
+    public List<RideResponseDTO> joinedHistory(@PathVariable("empId") String empId) {
         return rideService.getJoinedRideHistory(empId);
     }
 
     @PostMapping("/cancel/{id}")
-    public ResponseEntity<Void> cancelRide(@PathVariable Long id) {
+    public ResponseEntity<Void> cancelRide(@PathVariable("id") Long id) {
         rideService.deleteRide(id); // marks as Cancelled and notifies
         return ResponseEntity.ok().build();
     }

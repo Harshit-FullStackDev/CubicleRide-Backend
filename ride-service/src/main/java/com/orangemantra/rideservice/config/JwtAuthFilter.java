@@ -42,13 +42,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             } catch (Exception e) {
-                log.warn("JWT parse/validation failed: {}", e.getMessage());
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.setContentType("application/json");
-                try {
-                    response.getWriter().write("{\"error\":\"Invalid or expired token\"}");
-                } catch (IOException ignored) {}
-                return;
+                // Log and continue without authentication; protected endpoints will still be denied by security layer
+                log.warn("JWT parse/validation failed for path {}: {}", request.getRequestURI(), e.getMessage());
             }
         }
 

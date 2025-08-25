@@ -61,7 +61,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/employees/{empId}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable String empId) {
+    public ResponseEntity<Void> deleteEmployee(@PathVariable("empId") String empId) {
         employeeClient.deleteEmployee(empId);
         try {
             userClient.deleteUser(empId);
@@ -70,7 +70,7 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
     @GetMapping("/employees/{empId}")
-    public EmployeeDTO getEmployee(@PathVariable String empId) {
+    public EmployeeDTO getEmployee(@PathVariable("empId") String empId) {
         return employeeClient.getEmployee(empId);
     }
     private EmployeeRegisterRequest toRegisterRequest(EmployeeDTO dto) {
@@ -81,7 +81,7 @@ public class AdminController {
         return req;
     }
     @PutMapping("/employees/{empId}")
-    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String empId, @RequestBody EmployeeDTO employeeDTO) {
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable("empId") String empId, @RequestBody EmployeeDTO employeeDTO) {
         EmployeeDTO updatedEmployee = employeeClient.updateEmployee(empId, employeeDTO);
         userClient.updateUser(empId, toRegisterRequest(employeeDTO));
         return ResponseEntity.ok(updatedEmployee);
@@ -103,22 +103,22 @@ public class AdminController {
     public List<?> allVehicles() { return vehicleClient.allVehicles(); }
 
     @GetMapping("/vehicles/{empId}")
-    public Map<String, Object> vehicleByEmp(@PathVariable String empId) { return vehicleClient.getByEmpId(empId); }
+    public Map<String, Object> vehicleByEmp(@PathVariable("empId") String empId) { return vehicleClient.getByEmpId(empId); }
 
     @PutMapping("/vehicles/{id}/verify")
-    public Map<String, Object> verifyVehicle(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+    public Map<String, Object> verifyVehicle(@PathVariable("id") Long id, @RequestBody Map<String, Object> body) {
         return vehicleClient.verify(id, body);
     }
 
     // OTP MANAGEMENT ----------------------------------------------------
     @PostMapping("/employees/{empId}/otp/verify")
-    public ResponseEntity<?> forceVerifyOtp(@PathVariable String empId) {
+    public ResponseEntity<?> forceVerifyOtp(@PathVariable("empId") String empId) {
         userClient.adminVerifyOtp(empId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/employees/{empId}/otp/resend")
-    public ResponseEntity<?> resendOtp(@PathVariable String empId) {
+    public ResponseEntity<?> resendOtp(@PathVariable("empId") String empId) {
         userClient.adminResendOtp(empId);
         return ResponseEntity.ok().build();
     }
