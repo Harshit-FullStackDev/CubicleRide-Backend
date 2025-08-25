@@ -70,8 +70,9 @@ public class RideController {
 
     @PostMapping("/join/{id}")
     public ResponseEntity<Void> joinRide(@PathVariable("id") Long id, @RequestBody JoinRequest req) {
-        rideService.joinRide(id, req.getEmpId());
-        notificationService.notifyRideOwnerOnJoin(id, req.getEmpId());
+        int passengers = req.getPassengers() == null ? 1 : Math.max(1, req.getPassengers());
+        rideService.joinRide(id, req.getEmpId(), passengers);
+        notificationService.notifyRideOwnerOnJoin(id, req.getEmpId()); // message unchanged
         return ResponseEntity.ok().build();
     }
 
@@ -94,9 +95,70 @@ public class RideController {
 
     @GetMapping("/active")
     public List<RideResponseDTO> activeRides(@RequestParam(name = "page", defaultValue = "0") int page,
-                                             @RequestParam(name = "size", defaultValue = "50") int size) {
+                                             @RequestParam(name = "size", defaultValue = "50") int size,
+                                             @RequestParam(name = "origin", required = false) String origin,
+                                             @RequestParam(name = "destination", required = false) String destination,
+                                             @RequestParam(name = "date", required = false) String date,
+                                             @RequestParam(name = "instant", required = false) Boolean instant,
+                                             @RequestParam(name = "after", required = false) String afterTime,
+                                             @RequestParam(name = "before", required = false) String beforeTime,
+                                             @RequestParam(name = "minFare", required = false) String minFare,
+                                             @RequestParam(name = "maxFare", required = false) String maxFare,
+                                             @RequestParam(name = "passengers", required = false) Integer passengers,
+                                             @RequestParam(name = "sort", required = false) String sort) {
         rideService.expirePastRidesInternal();
         List<RideResponseDTO> list = rideService.getActiveRidesWithEmployeeDetails();
+        // Filtering (in-memory for now)
+        java.math.BigDecimal minF = null, maxF = null;
+        try { if (minFare != null && !minFare.isBlank()) minF = new java.math.BigDecimal(minFare.trim()); } catch (Exception ignored) {}
+        try { if (maxFare != null && !maxFare.isBlank()) maxF = new java.math.BigDecimal(maxFare.trim()); } catch (Exception ignored) {}
+        java.time.LocalTime after = null, before = null;
+        try { if (afterTime != null && !afterTime.isBlank()) after = java.time.LocalTime.parse(afterTime); } catch (Exception ignored) {}
+        try { if (beforeTime != null && !beforeTime.isBlank()) before = java.time.LocalTime.parse(beforeTime); } catch (Exception ignored) {}
+        final java.time.LocalDate filterDate = (date != null && !date.isBlank()) ? java.time.LocalDate.parse(date) : null;
+        final int neededSeats = passengers != null && passengers > 0 ? passengers : 1;
+
+        BigDecimal finalMinF = minF;
+        BigDecimal finalMaxF = maxF;
+        java.time.LocalTime finalAfter = after;
+        java.time.LocalTime finalBefore = before;
+        list = list.stream().filter(r -> {
+            if (origin != null && !origin.isBlank() && !origin.equals(r.getOrigin())) return false;
+            if (destination != null && !destination.isBlank() && !destination.equals(r.getDestination())) return false;
+            if (filterDate != null && (r.getDate() == null || !filterDate.toString().equals(r.getDate()))) return false;
+            if (instant != null && instant != r.isInstantBookingEnabled()) return false;
+            if (r.getArrivalTime() != null) {
+                try {
+                    java.time.LocalTime t = java.time.LocalTime.parse(r.getArrivalTime());
+                    if (finalAfter != null && t.isBefore(finalAfter)) return false;
+                    if (finalBefore != null && t.isAfter(finalBefore)) return false;
+                } catch (Exception ignored) {}
+            }
+            if (r.getAvailableSeats() < neededSeats) return false;
+            if (r.getFare() != null) {
+                try {
+                    java.math.BigDecimal f = new java.math.BigDecimal(r.getFare());
+                    if (finalMinF != null && f.compareTo(finalMinF) < 0) return false;
+                    if (finalMaxF != null && f.compareTo(finalMaxF) > 0) return false;
+                } catch (Exception ignored) {}
+            } else {
+                // treat free rides as 0 for minFare filter
+                return finalMinF == null || finalMinF.compareTo(BigDecimal.ZERO) <= 0;
+            }
+            return true;
+        }).toList();
+
+        if (sort != null) {
+            switch (sort) {
+                case "earliest" -> list = list.stream().sorted(java.util.Comparator.comparing(RideResponseDTO::getArrivalTime, java.util.Comparator.nullsLast(String::compareTo))).toList();
+                case "price" -> list = list.stream().sorted((a,b)->{
+                    java.math.BigDecimal af = a.getFare()==null? java.math.BigDecimal.ZERO : new java.math.BigDecimal(a.getFare());
+                    java.math.BigDecimal bf = b.getFare()==null? java.math.BigDecimal.ZERO : new java.math.BigDecimal(b.getFare());
+                    return af.compareTo(bf);
+                }).toList();
+                default -> {}
+            }
+        }
         int from = Math.min(page * size, list.size());
         int to = Math.min(from + size, list.size());
         return list.subList(from, to);
@@ -146,7 +208,8 @@ public class RideController {
     @PostMapping("/approve/{rideId}")
     public ResponseEntity<Void> approve(@PathVariable("rideId") Long rideId, @RequestBody JoinRequest req) {
         String ownerEmpId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
-        rideService.approveJoin(rideId, ownerEmpId, req.getEmpId());
+        int passengers = req.getPassengers() == null ? 1 : Math.max(1, req.getPassengers());
+        rideService.approveJoin(rideId, ownerEmpId, req.getEmpId(), passengers);
         return ResponseEntity.ok().build();
     }
 

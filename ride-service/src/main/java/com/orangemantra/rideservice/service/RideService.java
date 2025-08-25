@@ -109,16 +109,19 @@ public class RideService {
     public List<Ride> getJoinedRides(String empId) { return rideRepository.findByJoinedEmpIdsContaining(empId); }
 
     // JOIN / APPROVAL FLOW ----------------------------------------
-    public void joinRide(Long rideId, String empId) {
+    public void joinRide(Long rideId, String empId, int passengers) {
         Ride ride = getRideById(rideId);
         if (!"Active".equalsIgnoreCase(ride.getStatus())) throw new RuntimeException("Ride is not active");
         expirePastRidesInternal();
-        if (ride.getAvailableSeats() <= 0) throw new RuntimeException("No seats available");
-        if (ride.getJoinedEmpIds().contains(empId)) return;
+        if (passengers < 1) passengers = 1;
+        if (ride.getAvailableSeats() < passengers) throw new RuntimeException("Not enough seats available");
+        if (ride.getJoinedEmpIds().contains(empId)) return; // already joined; future enhancement: allow increment? currently skip
         if (ride.getPendingEmpIds() != null && ride.getPendingEmpIds().contains(empId)) return;
         if (ride.isInstantBookingEnabled()) {
             ride.getJoinedEmpIds().add(empId);
-            ride.setAvailableSeats(ride.getAvailableSeats() - 1);
+            if (ride.getJoinedSeats() == null) ride.setJoinedSeats(new java.util.HashMap<>());
+            ride.getJoinedSeats().put(empId, passengers);
+            ride.setAvailableSeats(ride.getAvailableSeats() - passengers);
         } else {
             assert ride.getPendingEmpIds() != null;
             ride.getPendingEmpIds().add(empId);
@@ -127,15 +130,18 @@ public class RideService {
         rideRepository.save(ride);
     }
 
-    public void approveJoin(Long rideId, String ownerEmpId, String empId) {
+    public void approveJoin(Long rideId, String ownerEmpId, String empId, int passengers) {
         Ride ride = getRideById(rideId);
         if (!ride.getOwnerEmpId().equals(ownerEmpId)) throw new RuntimeException("Not ride owner");
         if (ride.isInstantBookingEnabled()) return; // nothing to approve
-        if (ride.getAvailableSeats() <= 0) throw new RuntimeException("No seats available");
+        if (passengers < 1) passengers = 1;
+        if (ride.getAvailableSeats() < passengers) throw new RuntimeException("Not enough seats available");
         if (ride.getPendingEmpIds().remove(empId)) {
             if (!ride.getJoinedEmpIds().contains(empId)) {
                 ride.getJoinedEmpIds().add(empId);
-                ride.setAvailableSeats(ride.getAvailableSeats() - 1);
+                if (ride.getJoinedSeats() == null) ride.setJoinedSeats(new java.util.HashMap<>());
+                ride.getJoinedSeats().put(empId, passengers);
+                ride.setAvailableSeats(ride.getAvailableSeats() - passengers);
             }
             ride.setUpdatedAt(LocalDateTime.now());
             rideRepository.save(ride);
@@ -162,7 +168,7 @@ public class RideService {
         existing.setTotalSeats(updatedRide.getTotalSeats());
         existing.setAvailableSeats(updatedRide.getAvailableSeats());
         existing.setInstantBookingEnabled(updatedRide.isInstantBookingEnabled());
-    existing.setFare(updatedRide.getFare());
+        existing.setFare(updatedRide.getFare());
         existing.setUpdatedAt(LocalDateTime.now());
         Ride saved = rideRepository.save(existing);
         boolean beforeArrival = false;
@@ -204,7 +210,12 @@ public class RideService {
     public void leaveRide(Long rideId, String empId) {
         Ride ride = getRideById(rideId);
         if (ride.getJoinedEmpIds().remove(empId)) {
-            ride.setAvailableSeats(ride.getAvailableSeats() + 1);
+            int seats = 1;
+            if (ride.getJoinedSeats() != null) {
+                seats = ride.getJoinedSeats().getOrDefault(empId, 1);
+                ride.getJoinedSeats().remove(empId);
+            }
+            ride.setAvailableSeats(ride.getAvailableSeats() + seats);
             ride.setUpdatedAt(LocalDateTime.now());
             rideRepository.save(ride);
         } else if (ride.getPendingEmpIds().remove(empId)) { // allow withdrawal of pending request
@@ -261,8 +272,8 @@ public class RideService {
         try {
             for (String je : joinedEmpIds) {
                 notificationProducer.send(
-                    je,
-                    "Your ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been cancelled by the owner."
+                        je,
+                        "Your ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been cancelled by the owner."
                 );
             }
         } catch (Exception e) { log.error("Failed to send cancellation notifications: {}", e.getMessage()); }
@@ -271,8 +282,8 @@ public class RideService {
         try {
             for (String je : joinedEmpIds) {
                 notificationProducer.send(
-                    je,
-                    "A ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been updated by the owner."
+                        je,
+                        "A ride from " + ride.getOrigin() + " to " + ride.getDestination() + " has been updated by the owner."
                 );
             }
         } catch (Exception e) { log.error("Failed to send update notifications: {}", e.getMessage()); }
@@ -287,8 +298,8 @@ public class RideService {
             String authHeader = req.getHeader("Authorization");
             jwt = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader : null;
         } else jwt = null;
-    if (rides.isEmpty()) return List.of();
-    return buildDtosBatch(rides, defaultStatus, jwt);
+        if (rides.isEmpty()) return List.of();
+        return buildDtosBatch(rides, defaultStatus, jwt);
     }
 
     private RideResponseDTO buildDto(Ride ride, String defaultStatus, String jwt) {
@@ -317,8 +328,13 @@ public class RideService {
         boolean viewerJoined = viewerEmpId != null && ride.getJoinedEmpIds().contains(viewerEmpId);
         boolean canSeeOwnerPhone = viewerIsOwner || viewerJoined; // joined implies approved already
 
-    List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> mapEmployeeCached(empId, jwt)).toList();
-    List<JoinedEmployeeDTO> pendingEmployees = mapPending(ride.getPendingEmpIds(), jwt);
+        List<JoinedEmployeeDTO> joinedEmployees = ride.getJoinedEmpIds().stream().map(empId -> {
+            JoinedEmployeeDTO dto = mapEmployeeCached(empId, jwt);
+            Integer seats = ride.getJoinedSeats() != null ? ride.getJoinedSeats().get(empId) : null;
+            dto.setSeats(seats != null ? seats : 1);
+            return dto;
+        }).toList();
+        List<JoinedEmployeeDTO> pendingEmployees = mapPending(ride.getPendingEmpIds(), jwt);
 
         // Apply phone visibility rules
         if (!canSeeOwnerPhone) ownerPhone = null; // hide owner's phone if not joined/owner

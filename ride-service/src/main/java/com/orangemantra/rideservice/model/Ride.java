@@ -14,9 +14,9 @@ import java.util.Objects;
 
 @Entity
 @Table(indexes = {
-    @Index(name = "idx_ride_owner_status", columnList = "ownerEmpId,status"),
-    @Index(name = "idx_ride_status", columnList = "status"),
-    @Index(name = "idx_ride_date_status", columnList = "date,status")
+        @Index(name = "idx_ride_owner_status", columnList = "ownerEmpId,status"),
+        @Index(name = "idx_ride_status", columnList = "status"),
+        @Index(name = "idx_ride_date_status", columnList = "date,status")
 })
 @Getter
 @Setter
@@ -50,6 +50,14 @@ public class Ride {
     @ElementCollection
     @Builder.Default
     private List<String> joinedEmpIds = new ArrayList<>();
+
+    // Seats booked per joined employee (empId -> seats). Aligns with joinedEmpIds list.
+    @ElementCollection
+    @CollectionTable(name = "ride_joined_seats", joinColumns = @JoinColumn(name = "ride_id"))
+    @MapKeyColumn(name = "emp_id")
+    @Column(name = "seats")
+    @Builder.Default
+    private java.util.Map<String, Integer> joinedSeats = new java.util.HashMap<>();
 
     // If true passengers are auto-added. If false owner must approve each request.
     @Builder.Default

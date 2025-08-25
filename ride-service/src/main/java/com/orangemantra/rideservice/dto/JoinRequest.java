@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class JoinRequest {
     private String empId;
+    private Integer passengers;
 }
