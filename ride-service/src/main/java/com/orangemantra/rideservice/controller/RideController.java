@@ -1,8 +1,8 @@
 package com.orangemantra.rideservice.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.math.BigDecimal;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,12 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.orangemantra.rideservice.dto.JoinRequest;
 import com.orangemantra.rideservice.dto.OfferRideRequest;
-import jakarta.validation.Valid;
 import com.orangemantra.rideservice.dto.RideResponseDTO;
 import com.orangemantra.rideservice.model.Ride;
 import com.orangemantra.rideservice.service.NotificationService;
 import com.orangemantra.rideservice.service.RideService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -39,6 +39,18 @@ public class RideController {
         return java.util.Map.of("status","UP","service","ride-service","timestamp",System.currentTimeMillis());
     }
 
+    // TEMP: Debug endpoint to inspect authentication state (remove in production)
+    @GetMapping("/debug/auth")
+    public java.util.Map<String,Object> authDebug() {
+        var ctx = SecurityContextHolder.getContext();
+        var auth = ctx.getAuthentication();
+        return java.util.Map.of(
+                "authenticated", auth != null && auth.isAuthenticated(),
+                "principal", auth == null ? null : auth.getPrincipal(),
+                "authorities", auth == null ? java.util.List.of() : auth.getAuthorities().stream().map(a->a.getAuthority()).toList()
+        );
+    }
+
     @PostMapping("/offer")
     public Ride offerRide(@Valid @RequestBody OfferRideRequest request) {
         String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
@@ -46,12 +58,20 @@ public class RideController {
         Ride ride = Ride.builder()
                 .origin(request.getOrigin())
                 .destination(request.getDestination())
+                .originLat(request.getOriginLat())
+                .originLng(request.getOriginLng())
+                .destinationLat(request.getDestinationLat())
+                .destinationLng(request.getDestinationLng())
                 .date(LocalDate.parse(request.getDate()))
                 .arrivalTime(request.getArrivalTime())
                 .carDetails(request.getCarDetails())
                 .totalSeats(request.getTotalSeats())
                 .availableSeats(request.getTotalSeats())
                 .instantBookingEnabled(request.isInstantBookingEnabled())
+                .routeGeometry(request.getRouteGeometry())
+                .routeDistanceMeters(request.getRouteDistanceMeters())
+                .routeDurationSeconds(request.getRouteDurationSeconds())
+                .driverNote(request.getDriverNote())
                 .ownerEmpId(empId)
                 .build();
 
@@ -66,6 +86,13 @@ public class RideController {
         }
 
         return rideService.offerRide(ride);
+    }
+
+    @GetMapping("/active/current")
+    public java.util.Map<String,Object> hasActiveRide() {
+        String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        boolean active = rideService.hasActiveRide(empId);
+        return java.util.Map.of("active", active);
     }
 
     @PostMapping("/join/{id}")

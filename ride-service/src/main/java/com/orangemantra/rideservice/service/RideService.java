@@ -1,17 +1,22 @@
 package com.orangemantra.rideservice.service;
 
-import com.orangemantra.rideservice.dto.JoinedEmployeeDTO;
-import com.orangemantra.rideservice.dto.RideResponseDTO;
-import com.orangemantra.rideservice.util.JwtUtil;
-import com.orangemantra.rideservice.model.Ride;
-import com.orangemantra.rideservice.repository.RideRepository;
-import com.orangemantra.rideservice.messaging.NotificationProducer;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -19,12 +24,16 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import com.orangemantra.rideservice.dto.JoinedEmployeeDTO;
+import com.orangemantra.rideservice.dto.RideResponseDTO;
+import com.orangemantra.rideservice.messaging.NotificationProducer;
+import com.orangemantra.rideservice.model.Ride;
+import com.orangemantra.rideservice.repository.RideRepository;
+import com.orangemantra.rideservice.util.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -108,6 +117,21 @@ public class RideService {
     public Ride getRideById(Long id) { return rideRepository.findById(id).orElseThrow(() -> new RuntimeException("Ride not found")); }
     public List<Ride> getJoinedRides(String empId) { return rideRepository.findByJoinedEmpIdsContaining(empId); }
 
+    public boolean hasActiveRide(String ownerEmpId) {
+        expirePastRidesInternal();
+        List<Ride> activeOwned = rideRepository.findByOwnerEmpIdAndStatus(ownerEmpId, "Active");
+        if (activeOwned.isEmpty()) return false;
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        for (Ride r : activeOwned) {
+            if (r.getDate() == null || r.getArrivalTime() == null) return true; // treat malformed as active
+            try {
+                java.time.LocalTime at = java.time.LocalTime.parse(r.getArrivalTime());
+                if (now.isBefore(java.time.LocalDateTime.of(r.getDate(), at))) return true;
+            } catch (Exception e) { return true; }
+        }
+        return false;
+    }
+
     // JOIN / APPROVAL FLOW ----------------------------------------
     public void joinRide(Long rideId, String empId, int passengers) {
         Ride ride = getRideById(rideId);
@@ -162,6 +186,10 @@ public class RideService {
         Ride existing = getRideById(rideId);
         existing.setOrigin(updatedRide.getOrigin());
         existing.setDestination(updatedRide.getDestination());
+        existing.setOriginLat(updatedRide.getOriginLat());
+        existing.setOriginLng(updatedRide.getOriginLng());
+        existing.setDestinationLat(updatedRide.getDestinationLat());
+        existing.setDestinationLng(updatedRide.getDestinationLng());
         existing.setDate(updatedRide.getDate());
         existing.setArrivalTime(updatedRide.getArrivalTime());
         existing.setCarDetails(updatedRide.getCarDetails());
@@ -169,6 +197,10 @@ public class RideService {
         existing.setAvailableSeats(updatedRide.getAvailableSeats());
         existing.setInstantBookingEnabled(updatedRide.isInstantBookingEnabled());
         existing.setFare(updatedRide.getFare());
+        existing.setRouteGeometry(updatedRide.getRouteGeometry());
+        existing.setRouteDistanceMeters(updatedRide.getRouteDistanceMeters());
+        existing.setRouteDurationSeconds(updatedRide.getRouteDurationSeconds());
+        existing.setDriverNote(updatedRide.getDriverNote());
         existing.setUpdatedAt(LocalDateTime.now());
         Ride saved = rideRepository.save(existing);
         boolean beforeArrival = false;
@@ -359,6 +391,10 @@ public class RideService {
                 .ownerPhone(ownerPhone)
                 .origin(ride.getOrigin())
                 .destination(ride.getDestination())
+                .originLat(ride.getOriginLat())
+                .originLng(ride.getOriginLng())
+                .destinationLat(ride.getDestinationLat())
+                .destinationLng(ride.getDestinationLng())
                 .date(ride.getDate() != null ? ride.getDate().toString() : null)
                 .arrivalTime(ride.getArrivalTime())
                 .carDetails(ride.getCarDetails())
@@ -369,6 +405,10 @@ public class RideService {
                 .joinedEmployees(joinedEmployees)
                 .instantBookingEnabled(ride.isInstantBookingEnabled())
                 .pendingEmployees(pendingEmployees)
+                .routeDistanceMeters(ride.getRouteDistanceMeters())
+                .routeDurationSeconds(ride.getRouteDurationSeconds())
+                .routeGeometry(ride.getRouteGeometry())
+                .driverNote(ride.getDriverNote())
                 .build();
     }
 

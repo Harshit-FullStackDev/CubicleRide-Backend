@@ -1,16 +1,35 @@
 package com.orangemantra.rideservice.model;
 
-import com.orangemantra.rideservice.util.StringCryptoConverter;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.proxy.HibernateProxy;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.hibernate.proxy.HibernateProxy;
+
+import com.orangemantra.rideservice.util.StringCryptoConverter;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Table(indexes = {
@@ -35,6 +54,19 @@ public class Ride {
     private String origin;
     private String destination;
 
+    // Precise coordinates (WGS84) for origin & destination if provided via wizard.
+    private Double originLat;
+    private Double originLng;
+    private Double destinationLat;
+    private Double destinationLng;
+
+    // Selected route polyline (encoded polyline or geojson simplified). For now store as text (encoded polyline or JSON string)
+    @Lob
+    private String routeGeometry;
+    // Distance (meters) and duration (seconds) from routing engine
+    private Integer routeDistanceMeters;
+    private Integer routeDurationSeconds;
+
     private LocalDate date;
     private String arrivalTime;
 
@@ -46,6 +78,10 @@ public class Ride {
 
     // Fare per seat (currency). Nullable => free ride. Non-negative.
     private BigDecimal fare;
+
+    // Optional public comment/note shown to passengers when publishing (e.g. meeting instructions)
+    @Column(length = 500)
+    private String driverNote;
 
     @ElementCollection
     @Builder.Default
