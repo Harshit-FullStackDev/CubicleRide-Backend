@@ -2,7 +2,9 @@ package com.orangemantra.rideservice.service;
 
 import com.orangemantra.rideservice.messaging.NotificationProducer;
 import com.orangemantra.rideservice.model.Ride;
+import com.orangemantra.rideservice.model.Notification;
 import com.orangemantra.rideservice.repository.RideRepository;
+import com.orangemantra.rideservice.repository.NotificationRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ public class NotificationService {
     private final RestTemplate restTemplate;
     private final RideRepository rideRepository;
     private final NotificationProducer notificationProducer;
+    private final NotificationRepository notificationRepository;
 
     @Async
     public void notifyRideOwnerOnJoin(Long rideId, String empId) {
@@ -53,8 +56,24 @@ public class NotificationService {
 
             String message = "Employee " + employeeName + " joined your ride.";
             notificationProducer.send(ownerEmpId, message);
+            persist(ownerEmpId, message, "JOIN");
         } catch (Exception e) {
             log.warn("Notification dispatch failed rideId={}, empId={}, err={}", rideId, empId, e.getMessage());
+        }
+    }
+
+    public void persist(String empId, String message, String type) {
+        if (notificationRepository == null) return; // defensive
+        try {
+            Notification n = new Notification();
+            n.setEmpId(empId);
+            n.setMessage(message);
+            n.setType(type);
+            n.setCreatedAt(java.time.Instant.now());
+            n.setReadFlag(false);
+            notificationRepository.save(n);
+        } catch (Exception ex) {
+            log.warn("Persist notification failed empId={}, msg={}", empId, ex.getMessage());
         }
     }
 }
