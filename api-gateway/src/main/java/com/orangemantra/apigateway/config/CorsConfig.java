@@ -1,5 +1,6 @@
 package com.orangemantra.apigateway.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -8,18 +9,31 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 @Configuration
 public class CorsConfig {
 
+    @Value("${cors.allowed-origins:http://localhost:*,https://localhost:*,https://*.azurestaticapps.net,https://*.azurewebsites.net,https://*.vercel.app,https://*.netlify.app,https://*.github.io}")
+    private String allowedOrigins;
+
     @Bean
     public WebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // Frontend origin
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // Allow multiple origins for development and production
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",                           // Local development
+            "https://localhost:*",                          // Local HTTPS development
+            "https://*.azurestaticapps.net",               // Azure Static Web Apps
+            "https://*.azurewebsites.net",                 // Azure App Service
+            "https://*.vercel.app",                        // Vercel deployments
+            "https://*.netlify.app",                       // Netlify deployments
+            "https://*.github.io"                          // GitHub Pages
+        ));
+        
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 

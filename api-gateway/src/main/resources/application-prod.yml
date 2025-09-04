@@ -51,6 +51,10 @@ eureka:
 jwt:
   secret: ${JWT_SECRET}
 
+# CORS Configuration for Frontend Integration
+cors:
+  allowed-origins: "http://localhost:*,https://localhost:*,https://*.azurestaticapps.net,https://*.azurewebsites.net,https://*.vercel.app,https://*.netlify.app,https://*.github.io"
+
 management:
   endpoints:
     web:
