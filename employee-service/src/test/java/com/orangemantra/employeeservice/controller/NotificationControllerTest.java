@@ -1,5 +1,6 @@
 package com.orangemantra.employeeservice.controller;
 
+import com.orangemantra.employeeservice.messaging.NotificationEvent;
 import com.orangemantra.employeeservice.model.Notification;
 import com.orangemantra.employeeservice.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.List;
 
@@ -19,11 +21,14 @@ class NotificationControllerTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private KafkaTemplate<String, NotificationEvent> kafkaTemplate;
+
     private NotificationController controller;
 
     @BeforeEach
     void setup() {
-        controller = new NotificationController(notificationService);
+        controller = new NotificationController(notificationService, kafkaTemplate);
     }
 
     @Test
@@ -32,7 +37,7 @@ class NotificationControllerTest {
         n.setUserId("U1");
         n.setMessage("hello");
         controller.createNotification(n);
-        verify(notificationService).saveNotification("U1", "hello");
+        verify(kafkaTemplate).send(eq("notifications"), eq("U1"), any(NotificationEvent.class));
     }
 
     @Test

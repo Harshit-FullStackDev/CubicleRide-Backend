@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/carpool_employee
     username: root
-    password: "@Harsh007"
+    password: ${DATASOURCE_PASSWORD:}
 
   jpa:
     hibernate:
@@ -35,4 +35,4 @@ eureka:
     prefer-ip-address: true
 
 jwt:
-  secret: "qwertyuiopasdfghjklzxcvbnmqwertyuiop"
+  secret: ${JWT_SECRET:qwertyuiopasdfghjklzxcvbnmqwertyuiop}

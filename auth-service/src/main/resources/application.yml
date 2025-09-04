@@ -8,7 +8,8 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/carpool_auth
     username: root
-    password: "@Harsh007"
+    password: ${DATASOURCE_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
@@ -18,8 +19,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: harshiitsonii@gmail.com
-    password: chdvoskxnnbzhnug
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -36,5 +37,5 @@ eureka:
 
 
 jwt:
-  secret: "qwertyuiopasdfghjklzxcvbnmqwertyuiop"
+  secret: ${JWT_SECRET:qwertyuiopasdfghjklzxcvbnmqwertyuiop}
   expiration: 86400000

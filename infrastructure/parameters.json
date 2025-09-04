@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "applicationName": {
+            "value": "cubicleride"
+        },
+        "environmentName": {
+            "value": "prod"
+        },
+        "mysqlAdminLogin": {
+            "value": "harshit"
+        },
+        "mysqlAdminPassword": {
+            "value": "@Manoj007"
+        },
+        "jwtSecret": {
+            "value": "qwertyuiopasdfghjklzxcvbnmqwertyuiop"
+        },
+        "mailUsername": {
+            "value": "harshiitsonii@gmail.com"
+        },
+        "mailPassword": {
+            "value": "ycjvnzlfukiarbgq"
+        }
+    }
+}

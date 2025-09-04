@@ -13,4 +13,4 @@ eureka:
     prefer-ip-address: true
 
 jwt:
-  secret: "qwertyuiopasdfghjklzxcvbnmqwertyuiop"
+  secret: ${JWT_SECRET:qwertyuiopasdfghjklzxcvbnmqwertyuiop}
