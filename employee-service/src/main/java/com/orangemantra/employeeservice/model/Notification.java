@@ -17,4 +17,5 @@ public class Notification {
     private String userId;
     @Convert(converter = StringCryptoConverter.class)
     private String message;
+    private boolean read = false;
 }

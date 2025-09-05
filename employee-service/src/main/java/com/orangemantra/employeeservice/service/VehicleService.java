@@ -7,7 +7,6 @@ import com.orangemantra.employeeservice.model.Vehicle;
 import com.orangemantra.employeeservice.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -20,8 +19,7 @@ public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
 
-    public VehicleResponse submitOrUpdate(VehicleRequest request) {
-        String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+    public VehicleResponse submitOrUpdate(VehicleRequest request, String empId) {
         Vehicle vehicle = vehicleRepository.findByEmpId(empId).orElseGet(() -> Vehicle.builder()
                 .empId(empId)
                 .createdAt(LocalDateTime.now())
@@ -49,11 +47,20 @@ public class VehicleService {
         return toResponse(saved);
     }
 
-    public VehicleResponse myVehicle() {
-        String empId = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+    // Keep backward compatibility
+    public VehicleResponse submitOrUpdate(VehicleRequest request) {
+        return submitOrUpdate(request, "default");
+    }
+
+    public VehicleResponse myVehicle(String empId) {
         Vehicle vehicle = vehicleRepository.findByEmpId(empId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No vehicle submitted"));
         return toResponse(vehicle);
+    }
+
+    // Keep backward compatibility
+    public VehicleResponse myVehicle() {
+        return myVehicle("default");
     }
 
     public VehicleResponse getByEmpId(String empId) {

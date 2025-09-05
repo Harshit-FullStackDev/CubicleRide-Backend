@@ -48,4 +48,15 @@ public class NotificationController {
         }
         return notificationService.getNotificationCount(userId);
     }
+
+    @PostMapping("/{userId}/mark-all-read")
+    public void markAllAsRead(@PathVariable("userId") String userId,
+                            org.springframework.security.core.Authentication authentication) {
+        // Ensure user can only mark their own notifications as read
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Cannot access other user's notifications");
+        }
+        notificationService.markAllAsRead(userId);
+    }
 }

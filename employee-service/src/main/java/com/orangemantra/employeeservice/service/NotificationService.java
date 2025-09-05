@@ -31,4 +31,10 @@ public class NotificationService {
     public long getNotificationCount(String userId) {
         return notificationRepository.countByUserId(userId);
     }
+
+    public void markAllAsRead(String userId) {
+        List<Notification> notifications = notificationRepository.findByUserId(userId);
+        notifications.forEach(notification -> notification.setRead(true));
+        notificationRepository.saveAll(notifications);
+    }
 }

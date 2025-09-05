@@ -18,13 +18,14 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     @PostMapping
-    public VehicleResponse submitOrUpdate(@RequestBody VehicleRequest request) {
-        return vehicleService.submitOrUpdate(request);
+    public VehicleResponse submitOrUpdate(@RequestBody VehicleRequest request, 
+                                        org.springframework.security.core.Authentication authentication) {
+        return vehicleService.submitOrUpdate(request, authentication.getName());
     }
 
     @GetMapping("/my")
-    public VehicleResponse myVehicle() {
-        return vehicleService.myVehicle();
+    public VehicleResponse myVehicle(org.springframework.security.core.Authentication authentication) {
+        return vehicleService.myVehicle(authentication.getName());
     }
 
     @GetMapping("/{empId}")
