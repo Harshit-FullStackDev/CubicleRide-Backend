@@ -57,20 +57,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                if (log.isDebugEnabled()) {
-                    log.debug("JWT authenticated request: principal={}, role={}, path={}", empId, role, request.getRequestURI());
-                }
+                log.info("JWT authenticated successfully: principal={}, role={}, authorities={}, path={}", empId, role, authToken.getAuthorities(), request.getRequestURI());
 
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                log.warn("JWT parse/validation failed: {} path={}", e.getMessage(), request.getRequestURI());
+                log.error("JWT parse/validation failed: {} path={} token={}", e.getMessage(), request.getRequestURI(), token.substring(0, Math.min(token.length(), 50)) + "...");
                 return;
             }
         }
         else {
-            if (log.isDebugEnabled()) {
-                log.debug("No Authorization header for path {}", request.getRequestURI());
-            }
+            log.info("No Authorization header found for path: {}", request.getRequestURI());
         }
 
         filterChain.doFilter(request, response);
