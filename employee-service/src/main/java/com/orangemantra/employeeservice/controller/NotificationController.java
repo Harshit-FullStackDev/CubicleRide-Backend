@@ -31,4 +31,9 @@ public class NotificationController {
     public void deleteNotification(@PathVariable("id") Long id) {
         notificationService.deleteNotification(id);
     }
+
+    @GetMapping("/{userId}/count")
+    public long getNotificationCount(@PathVariable("userId") String userId) {
+        return notificationService.getNotificationCount(userId);
+    }
 }

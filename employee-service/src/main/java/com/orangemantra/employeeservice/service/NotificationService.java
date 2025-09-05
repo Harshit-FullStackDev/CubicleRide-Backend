@@ -27,4 +27,8 @@ public class NotificationService {
     public void deleteNotification(Long id) {
         notificationRepository.deleteById(id);
     }
+
+    public long getNotificationCount(String userId) {
+        return notificationRepository.countByUserId(userId);
+    }
 }
