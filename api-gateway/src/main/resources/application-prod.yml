@@ -53,7 +53,7 @@ jwt:
 
 # CORS Configuration for Frontend Integration
 cors:
-  allowed-origins: "http://localhost:*,https://localhost:*,https://*.azurestaticapps.net,https://*.azurewebsites.net,https://*.vercel.app,https://*.netlify.app,https://*.github.io"
+  allowed-origins: "http://localhost:*,https://localhost:*,https://salmon-sand-087aeff00.1.azurestaticapps.net,https://*.azurestaticapps.net,https://*.azurewebsites.net,https://*.vercel.app,https://*.netlify.app,https://*.github.io"
 
 management:
   endpoints:
