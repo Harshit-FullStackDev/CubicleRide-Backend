@@ -23,7 +23,13 @@ public class NotificationController {
     }
 
     @GetMapping("/{userId}")
-    public List<Notification> getNotifications(@PathVariable("userId") String userId) {
+    public List<Notification> getNotifications(@PathVariable("userId") String userId,
+                                              org.springframework.security.core.Authentication authentication) {
+        // Ensure user can only access their own notifications
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Cannot access other user's notifications");
+        }
         return notificationService.getNotifications(userId);
     }
 
@@ -33,7 +39,13 @@ public class NotificationController {
     }
 
     @GetMapping("/{userId}/count")
-    public long getNotificationCount(@PathVariable("userId") String userId) {
+    public long getNotificationCount(@PathVariable("userId") String userId, 
+                                   org.springframework.security.core.Authentication authentication) {
+        // Ensure user can only access their own notification count
+        String authenticatedUserId = authentication.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Cannot access other user's notifications");
+        }
         return notificationService.getNotificationCount(userId);
     }
 }
