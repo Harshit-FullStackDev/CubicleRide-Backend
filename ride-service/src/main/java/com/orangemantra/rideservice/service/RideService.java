@@ -345,7 +345,7 @@ public class RideService {
             } catch (Exception ignored) {}
         }
         try {
-            String url = "http://localhost:8082/employee/" + ride.getOwnerEmpId();
+            String url = "http://employee-service/employee/" + ride.getOwnerEmpId();
             HttpHeaders headers = new HttpHeaders();
             if (jwt != null) headers.set("Authorization", jwt);
             ResponseEntity<EmployeeProfile> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
@@ -423,7 +423,7 @@ public class RideService {
         try {
             HttpHeaders headers = new HttpHeaders();
             if (jwt != null) headers.set("Authorization", jwt);
-            ResponseEntity<EmployeeProfile> response = restTemplate.exchange("http://localhost:8082/employee/" + empId, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
+            ResponseEntity<EmployeeProfile> response = restTemplate.exchange("http://employee-service/employee/" + empId, HttpMethod.GET, new HttpEntity<>(headers), EmployeeProfile.class);
             EmployeeProfile emp = response.getBody();
             if (emp != null) return new JoinedEmployeeDTO(emp.getEmpId(), emp.getName(), emp.getEmail(), emp.getPhone());
         } catch (Exception e) { log.error("Failed to fetch employee {}: {}", empId, e.getMessage()); }
@@ -440,7 +440,7 @@ public class RideService {
             try {
                 HttpHeaders headers = new HttpHeaders();
                 if (jwt != null) headers.set("Authorization", jwt);
-                ResponseEntity<VehicleInfo> resp = restTemplate.exchange("http://localhost:8082/vehicle/" + empId, HttpMethod.GET, new HttpEntity<>(headers), VehicleInfo.class);
+                ResponseEntity<VehicleInfo> resp = restTemplate.exchange("http://employee-service/vehicle/" + empId, HttpMethod.GET, new HttpEntity<>(headers), VehicleInfo.class);
                 return resp.getBody();
             } catch (Exception e) {
                 log.error("Failed vehicle fetch {}: {}", empId, e.getMessage());

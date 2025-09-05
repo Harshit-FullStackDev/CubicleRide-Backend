@@ -1,4 +1,4 @@
-package com.orangemantra.rideservice.service;
+  package com.orangemantra.rideservice.service;
 
 import com.orangemantra.rideservice.messaging.NotificationProducer;
 import com.orangemantra.rideservice.model.Ride;
@@ -43,7 +43,7 @@ public class NotificationService {
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    "http://localhost:8082/employee/" + empId + "/name",
+                    "http://employee-service/employee/" + empId + "/name",
                     HttpMethod.GET,
                     entity,
                     String.class

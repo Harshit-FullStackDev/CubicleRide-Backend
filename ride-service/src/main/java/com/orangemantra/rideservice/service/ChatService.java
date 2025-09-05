@@ -171,7 +171,7 @@ public class ChatService {
 
     private String fetchName(String empId, HttpHeaders headers) {
         try {
-            ResponseEntity<String> resp = restTemplate.exchange("http://localhost:8082/employee/" + empId + "/name", HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            ResponseEntity<String> resp = restTemplate.exchange("http://employee-service/employee/" + empId + "/name", HttpMethod.GET, new HttpEntity<>(headers), String.class);
             return Optional.ofNullable(resp.getBody()).orElse("Unknown");
         } catch (Exception e) {
             log.warn("Failed fetching name for {}: {}", empId, e.getMessage());
