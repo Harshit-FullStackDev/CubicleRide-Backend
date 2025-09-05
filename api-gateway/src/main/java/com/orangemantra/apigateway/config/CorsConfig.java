@@ -26,6 +26,7 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of(
             "http://localhost:*",                           // Local development
             "https://localhost:*",                          // Local HTTPS development
+            "https://salmon-sand-087aeff00.1.azurestaticapps.net", // Specific frontend domain
             "https://*.azurestaticapps.net",               // Azure Static Web Apps
             "https://*.azurewebsites.net",                 // Azure App Service
             "https://*.vercel.app",                        // Vercel deployments
